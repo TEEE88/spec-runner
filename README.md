@@ -43,7 +43,7 @@ npx spec-runner
 ### 4. init で詳細設定と最初のユースケースを開始する
 
 ```bash
-./scripts/spec-runner.sh init "会員登録" "会員"
+./.spec-runner/scripts/spec-runner.sh init "会員登録" "会員"
 ```
 
 **init を実行すると対話が始まる**（初回のみ）。AI と相談して決めた次の内容を入力する：
@@ -56,7 +56,7 @@ npx spec-runner
 
 設定後、`docs/01_要件/会員登録.md` ができ、ブランチ `feature/uc-会員登録` が作られる。
 
-- 引数なしで `./scripts/spec-runner.sh init` だけ実行すると、**設定対話のみ**（ユースケースは作らない）。
+- 引数なしで `./.spec-runner/scripts/spec-runner.sh init` だけ実行すると、**設定対話のみ**（ユースケースは作らない）。
 - すでに設定済みの場合は対話をスキップし、そのままユースケース作成に進む。
 
 ### 5. 開発フロー（この順で進める）
@@ -66,32 +66,32 @@ npx spec-runner
    docs/01_要件/会員登録.md を書く
 
 ② 要件レビュー通過
-   ./scripts/spec-runner.sh review-pass docs/01_要件/会員登録.md
-   ./scripts/spec-runner.sh set-gate glossary_checked
+   ./.spec-runner/scripts/spec-runner.sh review-pass docs/01_要件/会員登録.md
+   ./.spec-runner/scripts/spec-runner.sh set-gate glossary_checked
 
 ③ 概要設計
-   ./scripts/spec-runner.sh design-high
+   ./.spec-runner/scripts/spec-runner.sh design-high
    docs/02_概要設計/会員登録.md を書く → review-pass
 
 ④ 詳細設計（この順）
-   ./scripts/spec-runner.sh design-detail domain   → ドメイン.md を書く → review-pass
-   ./scripts/spec-runner.sh design-detail usecase  → ユースケース.md を書く → review-pass
-   ./scripts/spec-runner.sh design-detail table    → テーブル.md を書く → review-pass
-   ./scripts/spec-runner.sh design-detail infra   → インフラ.md を書く → review-pass
+   ./.spec-runner/scripts/spec-runner.sh design-detail domain   → ドメイン.md を書く → review-pass
+   ./.spec-runner/scripts/spec-runner.sh design-detail usecase  → ユースケース.md を書く → review-pass
+   ./.spec-runner/scripts/spec-runner.sh design-detail table    → テーブル.md を書く → review-pass
+   ./.spec-runner/scripts/spec-runner.sh design-detail infra   → インフラ.md を書く → review-pass
 
 ⑤ テスト設計
-   ./scripts/spec-runner.sh test-design
+   ./.spec-runner/scripts/spec-runner.sh test-design
    docs/04_テスト設計/会員登録.md を書く
    テストコードを先に書く（Red）→ コミット
-   ./scripts/spec-runner.sh set-gate test_code_committed
-   ./scripts/spec-runner.sh review-pass docs/04_テスト設計/会員登録.md
+   ./.spec-runner/scripts/spec-runner.sh set-gate test_code_committed
+   ./.spec-runner/scripts/spec-runner.sh review-pass docs/04_テスト設計/会員登録.md
 
 ⑥ 実装
-   ./scripts/spec-runner.sh implement
+   ./.spec-runner/scripts/spec-runner.sh implement
    テストを Green にする実装を書く
 
 ⑦ 完了
-   ./scripts/spec-runner.sh complete
+   ./.spec-runner/scripts/spec-runner.sh complete
 ```
 
 TDD はデフォルトで有効。実装に進むには「テスト設計ドキュメント」と「テストコードのコミット」が必須。無効にしたいときは `.spec-runner/config.sh` で `export TDD_ENABLED="false"`。
@@ -158,29 +158,30 @@ curl -sSL https://raw.githubusercontent.com/spec-runner/spec-runner/main/install
 
 ```
 <プロジェクトルート>/
-├── .spec-runner/
-│   ├── config.sh       # パス・拡張子・TDD 等
-│   └── state.json      # 現在のフェーズ（gitignore 推奨）
+├── .spec-runner/        # npx で入れたスクリプト・テンプレートをここに集約
+│   ├── config.sh        # パス・拡張子・TDD 等
+│   ├── state.json       # 現在のフェーズ（gitignore 推奨）
+│   ├── scripts/
+│   │   └── spec-runner.sh
+│   └── templates/       # 生成用＋初期ドキュメント（DDD用語・付番は日本語）
+│       ├── 01_要件定義/ひな形.md   # init で docs/01_要件/<UC>.md を生成
+│       ├── 03_詳細設計/            # design-detail で docs/03_詳細設計/<UC>/*.md を生成
+│       │   ├── ドメイン.md
+│       │   ├── ユースケース.md
+│       │   ├── テーブル.md
+│       │   └── インフラ.md
+│       ├── 99_設計判断記録/ひな形.md  # ADR ひな形（docs/99_設計判断記録/ にもコピー）
+│       └── 初期ドキュメント/        # deploy 時に docs/ に展開
+│           ├── 01_憲章.md
+│           ├── 02_仕様.md
+│           ├── 03_用語集.md
+│           ├── テンプレート一覧.md
+│           ├── 振り返り/負債.md
+│           └── 99_設計判断記録/.gitkeep
 ├── .github/
 │   ├── workflows/phase-gate-check.yml
 │   └── PULL_REQUEST_TEMPLATE.md
-├── docs/                # 付番済み（01_〜04_、99_）要件・概要・詳細設計・テスト設計・設計判断記録
-├── scripts/spec-runner.sh
-└── templates/           # すべてのテンプレート（DDD用語・付番は日本語）
-    ├── 01_要件定義/ひな形.md   # init で docs/01_要件/<UC>.md を生成
-    ├── 03_詳細設計/            # design-detail で docs/03_詳細設計/<UC>/*.md を生成
-    │   ├── ドメイン.md
-    │   ├── ユースケース.md
-    │   ├── テーブル.md
-    │   └── インフラ.md
-    ├── 99_設計判断記録/ひな形.md  # ADR ひな形（docs/99_設計判断記録/ にもコピー）
-    └── 初期ドキュメント/        # deploy 時に docs/ に展開
-        ├── 01_憲章.md
-        ├── 02_仕様.md
-        ├── 03_用語集.md
-        ├── テンプレート一覧.md
-        ├── 振り返り/負債.md
-        └── 99_設計判断記録/.gitkeep
+└── docs/                # 付番済み（01_〜04_、99_）要件・概要・詳細設計・テスト設計・設計判断記録
 ```
 
 選択した AI ツールに応じて `.claude/` や `.cursorrules` や `.github/copilot-instructions.md` などが追加される。
@@ -193,7 +194,7 @@ curl -sSL https://raw.githubusercontent.com/spec-runner/spec-runner/main/install
 npx spec-runner --update
 ```
 
-`scripts/spec-runner.sh` と `.claude/hooks/` が更新される。ドキュメントや config は上書きしない。
+`.spec-runner/scripts/spec-runner.sh` と `.claude/hooks/` が更新される。ドキュメントや config は上書きしない。
 
 ---
 

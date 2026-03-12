@@ -7,7 +7,7 @@ tools: ['shell']
 以下を**必ずシェルで実行**してください。
 
 ```bash
-./scripts/spec-runner.sh test-design
+./.spec-runner/scripts/spec-runner.sh test-design
 ```
 
 実行結果をユーザーに伝えてください。

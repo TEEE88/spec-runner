@@ -69,7 +69,7 @@ if [[ "$should_block" == "true" ]]; then
     cat <<MSG
 {
   "decision": "block",
-  "reason": "【フェーズゲート】現在のフェーズは '$phase' です。実装コードの生成は 'implement' フェーズでのみ許可されています。\n\n現在の状態を確認: ./scripts/spec-runner.sh status\n次のフェーズへ: ./scripts/spec-runner.sh $next_cmd"
+  "reason": "【フェーズゲート】現在のフェーズは '$phase' です。実装コードの生成は 'implement' フェーズでのみ許可されています。\n\n現在の状態を確認: ./.spec-runner/scripts/spec-runner.sh status\n次のフェーズへ: ./.spec-runner/scripts/spec-runner.sh $next_cmd"
 }
 MSG
     exit 2

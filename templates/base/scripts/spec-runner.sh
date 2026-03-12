@@ -7,25 +7,32 @@
 # このスクリプトはシェルレベルで実行を拒否するため、AIも人間もスキップできない。
 #
 # 使い方:
-#   ./scripts/spec-runner.sh init              … 詳細設定の対話のみ
-#   ./scripts/spec-runner.sh init <ユースケース名> [集約名]  … 設定後ユースケース作成
-#   ./scripts/spec-runner.sh require
-#   ./scripts/spec-runner.sh design-high
-#   ./scripts/spec-runner.sh design-detail <サブフェーズ: domain|usecase|table|infra>
-#   ./scripts/spec-runner.sh test-design
-#   ./scripts/spec-runner.sh implement
-#   ./scripts/spec-runner.sh status
-#   ./scripts/spec-runner.sh fix <修正内容>
-#   ./scripts/spec-runner.sh hotfix <内容>
-#   ./scripts/spec-runner.sh review-pass <ドキュメントパス>
-#   ./scripts/spec-runner.sh complete
+#   ./.spec-runner/scripts/spec-runner.sh init              … 詳細設定の対話のみ
+#   ./.spec-runner/scripts/spec-runner.sh init <ユースケース名> [集約名]  … 設定後ユースケース作成
+#   ./.spec-runner/scripts/spec-runner.sh require
+#   ./.spec-runner/scripts/spec-runner.sh design-high
+#   ./.spec-runner/scripts/spec-runner.sh design-detail <サブフェーズ: domain|usecase|table|infra>
+#   ./.spec-runner/scripts/spec-runner.sh test-design
+#   ./.spec-runner/scripts/spec-runner.sh implement
+#   ./.spec-runner/scripts/spec-runner.sh status
+#   ./.spec-runner/scripts/spec-runner.sh fix <修正内容>
+#   ./.spec-runner/scripts/spec-runner.sh hotfix <内容>
+#   ./.spec-runner/scripts/spec-runner.sh review-pass <ドキュメントパス>
+#   ./.spec-runner/scripts/spec-runner.sh complete
 # =============================================================================
 
 set -euo pipefail
 
 # ── 定数 ──────────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# .spec-runner/scripts/ にいる場合は PROJECT_ROOT は 2 階層上、そうでなければ 1 階層上（旧レイアウト）
+if [[ "$SCRIPT_DIR" == */.spec-runner/scripts ]]; then
+  PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+  SPEC_RUNNER_DIR="$PROJECT_ROOT/.spec-runner"
+else
+  PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+  SPEC_RUNNER_DIR="$PROJECT_ROOT"
+fi
 STATE_FILE="$PROJECT_ROOT/.spec-runner/state.json"
 DEBT_FILE="$PROJECT_ROOT/docs/振り返り/負債.md"
 GLOSSARY="$PROJECT_ROOT/docs/03_用語集.md"
@@ -119,7 +126,7 @@ state_push_history() {
 
 # ── ステートファイル必須チェック ───────────────────────────────────────────
 require_state() {
-  [[ -f "$STATE_FILE" ]] || die "作業中のユースケースがありません。まず: ./scripts/spec-runner.sh init <ユースケース名>"
+  [[ -f "$STATE_FILE" ]] || die "作業中のユースケースがありません。まず: ./.spec-runner/scripts/spec-runner.sh init <ユースケース名>"
   local phase
   phase=$(state_get "phase")
   [[ -n "$phase" ]] || die "ステートファイルが壊れています: $STATE_FILE"
@@ -156,7 +163,7 @@ check_status() {
     return 0
   else
     fail "$label のステータスが '$status' です。'$required_status' が必要です"
-    info "  レビュー後: ./scripts/spec-runner.sh review-pass $file"
+    info "  レビュー後: ./.spec-runner/scripts/spec-runner.sh review-pass $file"
     return 1
   fi
 }
@@ -227,7 +234,7 @@ cmd_init() {
   if [[ -z "$usecase" ]]; then
     info "設定が完了しました。最初のユースケースを開始するには:"
     echo ""
-    echo "  ./scripts/spec-runner.sh init \"ユースケース名\" \"集約名\""
+    echo "  ./.spec-runner/scripts/spec-runner.sh init \"ユースケース名\" \"集約名\""
     echo ""
     return 0
   fi
@@ -282,7 +289,7 @@ cmd_init() {
   # 要件定義ファイルをテンプレートから生成（templates/requirement/template.md を必須とする）
   local req_file tmpl
   req_file=$(uc_req)
-  tmpl="$PROJECT_ROOT/templates/01_要件定義/ひな形.md"
+  tmpl="$SPEC_RUNNER_DIR/templates/01_要件定義/ひな形.md"
   [[ -f "$tmpl" ]] || die "要件テンプレートがありません: $tmpl （npx spec-runner でセットアップしてください）"
 
   mkdir -p "$(dirname "$req_file")"
@@ -298,8 +305,8 @@ cmd_init() {
   info "次のステップ:"
   info "  1. $req_file を編集する"
   info "  2. チームに確認してもらう"
-  info "  3. ./scripts/spec-runner.sh review-pass $req_file"
-  info "  4. ./scripts/spec-runner.sh design-high"
+  info "  3. ./.spec-runner/scripts/spec-runner.sh review-pass $req_file"
+  info "  4. ./.spec-runner/scripts/spec-runner.sh design-high"
   info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 }
 
@@ -314,7 +321,7 @@ cmd_require() {
   req_file=$(uc_req)
   info "要件定義ファイル: $req_file"
   info "編集後、チームに確認してもらい:"
-  info "  ./scripts/spec-runner.sh review-pass $req_file"
+  info "  ./.spec-runner/scripts/spec-runner.sh review-pass $req_file"
 }
 
 # ── design-high ───────────────────────────────────────────────────────────────
@@ -410,8 +417,8 @@ TMPL
   info "次のステップ:"
   info "  1. $high_file を編集する"
   info "  2. チームにレビューしてもらう"
-  info "  3. ./scripts/spec-runner.sh review-pass $high_file"
-  info "  4. ./scripts/spec-runner.sh design-detail domain"
+  info "  3. ./.spec-runner/scripts/spec-runner.sh review-pass $high_file"
+  info "  4. ./.spec-runner/scripts/spec-runner.sh design-detail domain"
 }
 
 # ── design-detail ─────────────────────────────────────────────────────────────
@@ -449,9 +456,9 @@ cmd_design_detail() {
 
     echo ""
     if $all_ok; then
-      info "全サブフェーズ完了。次: ./scripts/spec-runner.sh test-design"
+      info "全サブフェーズ完了。次: ./.spec-runner/scripts/spec-runner.sh test-design"
     else
-      info "次のサブフェーズ: ./scripts/spec-runner.sh design-detail <domain|usecase|table|infra>"
+      info "次のサブフェーズ: ./.spec-runner/scripts/spec-runner.sh design-detail <domain|usecase|table|infra>"
     fi
     return
   fi
@@ -520,7 +527,7 @@ cmd_design_detail() {
   dest_file="$detail_dir/${sub_ja}.md"
   mkdir -p "$detail_dir"
 
-  local tmpl="$PROJECT_ROOT/templates/03_詳細設計/${sub_ja}.md"
+  local tmpl="$SPEC_RUNNER_DIR/templates/03_詳細設計/${sub_ja}.md"
   if [[ ! -f "$dest_file" ]]; then
     if [[ -f "$tmpl" ]]; then
       sed "s/{{USECASE}}/$usecase/g; s/{{DATE}}/$(date +%Y-%m-%d)/g" "$tmpl" > "$dest_file"
@@ -542,12 +549,12 @@ updated: $(date +%Y-%m-%d)
   info "次のステップ:"
   info "  1. $dest_file を編集する"
   info "  2. チームにレビューしてもらう"
-  info "  3. ./scripts/spec-runner.sh review-pass $dest_file"
+  info "  3. ./.spec-runner/scripts/spec-runner.sh review-pass $dest_file"
   case "$sub" in
-    domain)  info "  4. ./scripts/spec-runner.sh design-detail usecase" ;;
-    usecase) info "  4. ./scripts/spec-runner.sh design-detail table" ;;
-    table)   info "  4. ./scripts/spec-runner.sh design-detail infra" ;;
-    infra)   info "  4. ./scripts/spec-runner.sh test-design" ;;
+    domain)  info "  4. ./.spec-runner/scripts/spec-runner.sh design-detail usecase" ;;
+    usecase) info "  4. ./.spec-runner/scripts/spec-runner.sh design-detail table" ;;
+    table)   info "  4. ./.spec-runner/scripts/spec-runner.sh design-detail infra" ;;
+    infra)   info "  4. ./.spec-runner/scripts/spec-runner.sh test-design" ;;
   esac
 }
 
@@ -637,8 +644,8 @@ TMPL
   info "  1. $test_file を編集する（テスト設計）"
   info "  2. テストコードを書く（実装前。Red状態でOK）"
   info "  3. git commit でテストコードをコミット"
-  info "  4. ./scripts/spec-runner.sh review-pass $test_file"
-  info "  5. ./scripts/spec-runner.sh implement"
+  info "  4. ./.spec-runner/scripts/spec-runner.sh review-pass $test_file"
+  info "  5. ./.spec-runner/scripts/spec-runner.sh implement"
 }
 
 # ── implement ─────────────────────────────────────────────────────────────────
@@ -670,7 +677,7 @@ cmd_implement() {
         ((errors++))
       else
         warn "テストコードがコミット済みか未確認です"
-        warn "確認後: ./scripts/spec-runner.sh set-gate test_code_committed"
+        warn "確認後: ./.spec-runner/scripts/spec-runner.sh set-gate test_code_committed"
       fi
     else
       check_gate "test_code_committed" "テストコードのコミット確認" || ((errors++))
@@ -701,7 +708,7 @@ cmd_implement() {
   info " 1. テストを Green にする実装を書く"
   info " 2. 設計と乖離した場合は先にドキュメントを更新する"
   info " 3. コードとドキュメントを同一コミットに含める"
-  info " 4. 完了後: ./scripts/spec-runner.sh complete"
+  info " 4. 完了後: ./.spec-runner/scripts/spec-runner.sh complete"
   warn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 }
 
@@ -753,7 +760,7 @@ cmd_complete() {
 # ── review-pass ───────────────────────────────────────────────────────────────
 cmd_review_pass() {
   local file="${1:-}"
-  [[ -n "$file" ]] || die "使い方: ./scripts/spec-runner.sh review-pass <ファイルパス>"
+  [[ -n "$file" ]] || die "使い方: ./.spec-runner/scripts/spec-runner.sh review-pass <ファイルパス>"
   [[ -f "$file" ]] || die "ファイルが存在しません: $file"
 
   # frontmatterのstatusを更新
@@ -788,39 +795,39 @@ cmd_review_pass() {
       tmp2="${file}.tmp.$$"
       sed "s/^status: .*/status: approved/" "$file" > "$tmp2" && mv "$tmp2" "$file"
       ok "ゲート更新: require_approved = true"
-      info "次: docs/03_用語集.md を確認後 ./scripts/spec-runner.sh set-gate glossary_checked"
-      info "    ./scripts/spec-runner.sh design-high"
+      info "次: docs/03_用語集.md を確認後 ./.spec-runner/scripts/spec-runner.sh set-gate glossary_checked"
+      info "    ./.spec-runner/scripts/spec-runner.sh design-high"
       ;;
     *02_概要設計*)
       state_set_bool "gates.high_level_reviewed" true
       ok "ゲート更新: high_level_reviewed = true"
-      info "次: ./scripts/spec-runner.sh design-detail domain"
+      info "次: ./.spec-runner/scripts/spec-runner.sh design-detail domain"
       ;;
     *ドメイン*)
       state_set_bool "gates.domain_model_reviewed" true
       ok "ゲート更新: domain_model_reviewed = true"
-      info "次: ./scripts/spec-runner.sh design-detail usecase"
+      info "次: ./.spec-runner/scripts/spec-runner.sh design-detail usecase"
       ;;
     *ユースケース*)
       state_set_bool "gates.usecase_design_reviewed" true
       ok "ゲート更新: usecase_design_reviewed = true"
-      info "次: ./scripts/spec-runner.sh design-detail table"
+      info "次: ./.spec-runner/scripts/spec-runner.sh design-detail table"
       ;;
     *テーブル*)
       state_set_bool "gates.table_design_reviewed" true
       ok "ゲート更新: table_design_reviewed = true"
-      info "次: ./scripts/spec-runner.sh design-detail infra"
+      info "次: ./.spec-runner/scripts/spec-runner.sh design-detail infra"
       ;;
     *インフラ*)
       state_set_bool "gates.infra_design_reviewed" true
       ok "ゲート更新: infra_design_reviewed = true"
-      info "次: ./scripts/spec-runner.sh test-design"
+      info "次: ./.spec-runner/scripts/spec-runner.sh test-design"
       ;;
     *04_テスト設計*)
       state_set_bool "gates.test_design_reviewed" true
       ok "ゲート更新: test_design_reviewed = true"
-      info "テストコードをコミット後: ./scripts/spec-runner.sh set-gate test_code_committed"
-      info "その後: ./scripts/spec-runner.sh implement"
+      info "テストコードをコミット後: ./.spec-runner/scripts/spec-runner.sh set-gate test_code_committed"
+      info "その後: ./.spec-runner/scripts/spec-runner.sh implement"
       ;;
   esac
 }
@@ -829,7 +836,7 @@ cmd_review_pass() {
 cmd_set_gate() {
   require_state
   local gate="${1:-}"
-  [[ -n "$gate" ]] || die "使い方: ./scripts/spec-runner.sh set-gate <ゲート名>"
+  [[ -n "$gate" ]] || die "使い方: ./.spec-runner/scripts/spec-runner.sh set-gate <ゲート名>"
   state_set_bool "gates.$gate" true
   ok "ゲートフラグ設定: $gate = true"
 }
@@ -909,7 +916,7 @@ cmd_status() {
     status_show_foundation_reminder no_state
     info "開始するには: チャットで /sr-初期化 <ユースケース名> またはターミナルで下記を実行してください。"
     info "  例（チャット）: /sr-初期化 会員登録 会員"
-    info "  例（ターミナル）: ./scripts/spec-runner.sh init 会員登録 会員"
+    info "  例（ターミナル）: ./.spec-runner/scripts/spec-runner.sh init 会員登録 会員"
     return
   fi
 
@@ -1000,7 +1007,7 @@ cmd_status() {
       echo -e "  案内に従って該当ドキュメントを修正し、必要なら /sr-詳細設計 等から再実行。"
       ;;
     *)
-      echo -e "  ./scripts/spec-runner.sh help でコマンド一覧を確認"
+      echo -e "  ./.spec-runner/scripts/spec-runner.sh help でコマンド一覧を確認"
       ;;
   esac
   echo ""
@@ -1024,7 +1031,7 @@ cmd_status() {
 # ── fix ───────────────────────────────────────────────────────────────────────
 cmd_fix() {
   local content="${1:-}"
-  [[ -n "$content" ]] || die "使い方: ./scripts/spec-runner.sh fix <修正内容>"
+  [[ -n "$content" ]] || die "使い方: ./.spec-runner/scripts/spec-runner.sh fix <修正内容>"
 
   echo ""
   step "修正フロー: $content"
@@ -1068,7 +1075,7 @@ cmd_fix() {
       ;;
     5)
       info "テストを追加して実装を修正します"
-      info "  テストコード追加 → git commit → ./scripts/spec-runner.sh implement"
+      info "  テストコード追加 → git commit → ./.spec-runner/scripts/spec-runner.sh implement"
       ;;
     *)
       die "無効な選択です"
@@ -1082,7 +1089,7 @@ cmd_fix() {
 # ── hotfix ────────────────────────────────────────────────────────────────────
 cmd_hotfix() {
   local content="${1:-}"
-  [[ -n "$content" ]] || die "使い方: ./scripts/spec-runner.sh hotfix <内容>"
+  [[ -n "$content" ]] || die "使い方: ./.spec-runner/scripts/spec-runner.sh hotfix <内容>"
 
   local slug branch
   slug=$(echo "$content" | tr ' ' '-' | tr -cd '[:alnum:]-' | cut -c1-30)
@@ -1134,7 +1141,7 @@ main() {
     help|--help|-h)
       echo ""
       echo -e "${BOLD}使い方:${NC}"
-      echo "  ./scripts/spec-runner.sh <コマンド> [引数]"
+      echo "  ./.spec-runner/scripts/spec-runner.sh <コマンド> [引数]"
       echo ""
       echo -e "${BOLD}新規開発フロー:${NC}"
       echo "  init [ユースケース名] [集約名]  引数なしで設定対話。名前を渡すとユースケース作成"
@@ -1158,7 +1165,7 @@ main() {
       echo ""
       ;;
     *)
-      die "不明なコマンド: $cmd\n使い方: ./scripts/spec-runner.sh help"
+      die "不明なコマンド: $cmd\n使い方: ./.spec-runner/scripts/spec-runner.sh help"
       ;;
   esac
 }

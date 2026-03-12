@@ -1,7 +1,7 @@
 # 開発ルール（Claude Code 向け）
 
-このプロジェクトは **scripts/spec-runner.sh** によるフェーズゲートで運用している。  
-本ファイルは AI 向けの指示であり、**scripts/spec-runner.sh** はフェーズが通過していないと実行を拒否するため、設計をスキップできない。
+このプロジェクトは **.spec-runner/scripts/spec-runner.sh** によるフェーズゲートで運用している。  
+本ファイルは AI 向けの指示であり、**.spec-runner/scripts/spec-runner.sh** はフェーズが通過していないと実行を拒否するため、設計をスキップできない。
 
 ---
 
@@ -9,7 +9,7 @@
 
 **何かを実装する前に必ず実行せよ：**
 
-`./scripts/spec-runner.sh status`（チャットでは `/sr-状態`）で現在のフェーズを確認する。
+`./.spec-runner/scripts/spec-runner.sh status`（チャットでは `/sr-状態`）で現在のフェーズを確認する。
 
 `phase` が `implement` でない場合、実装コードを生成してはならない。
 代わりに「現在のフェーズを確認してください」と伝えてユーザーに委ねよ。
@@ -22,7 +22,7 @@
 
 1. **テスト設計** … `docs/04_テスト設計/<UC名>.md` を書く
 2. **テストを先に書く（Red）** … 実装より前にテストコードを書き、失敗することを確認する
-3. **テストコードをコミット** … `./scripts/spec-runner.sh set-gate test_code_committed` でゲート通過
+3. **テストコードをコミット** … `./.spec-runner/scripts/spec-runner.sh set-gate test_code_committed` でゲート通過
 4. **実装で Green** … `implement` フェーズでテストを通す実装を書く
 
 ドキュメントだけでなく**テストコードも必須**。テストを書かずに実装に進むことはできない。ゲートが `TEST_DIR` 配下の未コミットを検出し、コミットするまで `implement` に進めない。
@@ -40,7 +40,7 @@
 
 ### 自然言語・短いスラッシュでの依頼
 
-ユーザーが `/init`・`/status`・`/design-high` などの短いスラッシュ、または「init して」「顧客登録で design-high まで進めて」などの自然言語で依頼した場合も、**必ず** 対応する `./scripts/spec-runner.sh` をターミナルで実行すること（上記の `/sr-*` と同じ動作）。
+ユーザーが `/init`・`/status`・`/design-high` などの短いスラッシュ、または「init して」「顧客登録で design-high まで進めて」などの自然言語で依頼した場合も、**必ず** 対応する `./.spec-runner/scripts/spec-runner.sh` をターミナルで実行すること（上記の `/sr-*` と同じ動作）。
 
 ---
 
@@ -49,14 +49,14 @@
 ### require（要件定義）フェーズ
 - `docs/01_要件/<UC名>.md` を編集する
 - 実装・設計・テーブル定義は書かない
-- 完了後: `./scripts/spec-runner.sh review-pass docs/01_要件/<UC名>.md`
+- 完了後: `./.spec-runner/scripts/spec-runner.sh review-pass docs/01_要件/<UC名>.md`
 
 ### design-high（概要設計）フェーズ
 - `docs/02_概要設計/<UC名>.md` を編集する
 - ユースケース記述とドメインモデル候補の洗い出しのみ
 - **具体的なメソッド定義・テーブルカラムは書かない**
 - 新しい概念が出たら先に `docs/03_用語集.md` に追加する
-- 完了後: `./scripts/spec-runner.sh review-pass docs/02_概要設計/<UC名>.md`
+- 完了後: `./.spec-runner/scripts/spec-runner.sh review-pass docs/02_概要設計/<UC名>.md`
 
 ### design-detail（詳細設計）フェーズ
 この順序で作業する：
@@ -85,14 +85,14 @@
 ### test-design（テスト設計）フェーズ
 - `docs/04_テスト設計/<UC名>.md` を編集する
 - **TDD: テストコードを実装より先に書く（Red 状態で OK）**
-- テストコードをコミットしてから次へ: `./scripts/spec-runner.sh set-gate test_code_committed`
-- 完了後: `./scripts/spec-runner.sh review-pass docs/04_テスト設計/<UC名>.md`
+- テストコードをコミットしてから次へ: `./.spec-runner/scripts/spec-runner.sh set-gate test_code_committed`
+- 完了後: `./.spec-runner/scripts/spec-runner.sh review-pass docs/04_テスト設計/<UC名>.md`
 
 ### implement（実装）フェーズ
 - **TDD: テストを Green にする実装を書く**
 - 設計と乖離した場合は先にドキュメントを更新する
 - コードとドキュメントを同一コミットに含める
-- 完了後: `./scripts/spec-runner.sh complete`
+- 完了後: `./.spec-runner/scripts/spec-runner.sh complete`
 
 ---
 

@@ -8,7 +8,7 @@ tools: ['shell']
 **チャットで /sr-初期化 と入力して使う**。以下を**必ずシェルで実行**してください。
 
 ```bash
-./scripts/spec-runner.sh init ${input:args:ユースケース名 集約名（スペース区切り。集約名は省略可）}
+./.spec-runner/scripts/spec-runner.sh init ${input:args:ユースケース名 集約名（スペース区切り。集約名は省略可）}
 ```
 
 - **引数あり**: 未設定なら詳細設定の対話 → ユースケース作成。

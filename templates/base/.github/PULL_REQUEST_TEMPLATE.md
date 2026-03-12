@@ -1,6 +1,6 @@
 ## 対象ユースケース
 
-<!-- ./scripts/spec-runner.sh status の出力を貼り付ける -->
+<!-- ./.spec-runner/scripts/spec-runner.sh status の出力を貼り付ける -->
 
 ## 変更の種別
 

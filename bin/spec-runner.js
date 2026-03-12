@@ -186,7 +186,7 @@ async function main() {
   if (fs.existsSync(CONFIG_SH)) {
     warn('既に spec-runner が導入されています。');
     info('更新するには: npx spec-runner --update');
-    info('再設定するには: ./scripts/spec-runner.sh init（対話でパス等を設定）');
+    info('再設定するには: ./.spec-runner/scripts/spec-runner.sh init（対話でパス等を設定）');
     process.exit(0);
   }
 
@@ -285,7 +285,7 @@ async function main() {
   log('    チャットで /sr-憲章 または /sr-仕様 と入力すると編集を案内できます。');
   log('');
   log('  • パス・TDD 等の設定と最初のユースケース開始:');
-  log(chalk.cyan('       ./scripts/spec-runner.sh init "ユースケース名" "集約名"'));
+  log(chalk.cyan('       ./.spec-runner/scripts/spec-runner.sh init "ユースケース名" "集約名"'));
   log('    またはチャットで: ' + chalk.cyan('/sr-初期化 ユースケース名 集約名'));
   log('');
   log('  init を実行すると対話で Domain/UseCase のパスやテスト設定を聞かれます。');
@@ -302,7 +302,7 @@ async function main() {
   }
   log('');
   log(chalk.bold('コマンド一覧:'));
-  log(chalk.cyan('  ./scripts/spec-runner.sh help'));
+  log(chalk.cyan('  ./.spec-runner/scripts/spec-runner.sh help'));
   log('');
   log(chalk.gray('💡 構造を変えたいときは .spec-runner/config.sh を編集してください'));
 }
@@ -370,17 +370,18 @@ async function deployFiles(answers) {
   log('');
   log(chalk.bold('展開するファイル:'));
 
-  // 1. 共通（base）: scripts, templates（生成用＋初期ドキュメント）, .github
-  copyPathFrom(baseDir, 'scripts');
-  copyPathFrom(baseDir, 'templates');
-  // templates/初期ドキュメント/ の中身を docs/ に展開（憲章・仕様・用語集等）
-  const docsInitialSrc = path.join(CWD, 'templates', '初期ドキュメント');
+  // 1. 共通（base）: .spec-runner/ に scripts と templates をまとめて配置
+  const specRunnerDir = path.join(CWD, '.spec-runner');
+  copyPathFrom(baseDir, 'scripts', specRunnerDir);
+  copyPathFrom(baseDir, 'templates', specRunnerDir);
+  // .spec-runner/templates/初期ドキュメント/ の中身を docs/ に展開（憲章・仕様・用語集等）
+  const docsInitialSrc = path.join(specRunnerDir, 'templates', '初期ドキュメント');
   const docsDest = path.join(CWD, 'docs');
   if (fs.existsSync(docsInitialSrc)) {
     copyDir(docsInitialSrc, docsDest, vars);
   }
   // 生成用テンプレートのうち設計判断記録ひな形は docs/99_設計判断記録/ にも置く（新規 ADR 作成時のコピー元）
-  const adrTemplateSrc = path.join(CWD, 'templates', '99_設計判断記録', 'ひな形.md');
+  const adrTemplateSrc = path.join(specRunnerDir, 'templates', '99_設計判断記録', 'ひな形.md');
   const adrTemplateDest = path.join(CWD, 'docs', '99_設計判断記録', 'ひな形.md');
   if (fs.existsSync(adrTemplateSrc)) {
     fs.mkdirSync(path.dirname(adrTemplateDest), { recursive: true });
@@ -410,8 +411,8 @@ async function deployFiles(answers) {
   // 6. .gitignore に .spec-runner/state.json を追加
   appendGitignore();
 
-  // 7. scripts/spec-runner.sh に実行権限を付与
-  const devShPath = path.join(CWD, 'scripts', 'spec-runner.sh');
+  // 7. .spec-runner/scripts/spec-runner.sh に実行権限を付与
+  const devShPath = path.join(specRunnerDir, 'scripts', 'spec-runner.sh');
   if (fs.existsSync(devShPath) && !isDryRun) {
     fs.chmodSync(devShPath, '755');
   }
@@ -427,7 +428,7 @@ async function deployFiles(answers) {
 function generateConfigSh(vars) {
   const content = `# =============================================================================
 # .spec-runner/config.sh — spec-runner 設定
-# このファイルは scripts/spec-runner.sh が読み込む設定ファイルです
+# このファイルは .spec-runner/scripts/spec-runner.sh が読み込む設定ファイルです
 # npx spec-runner / init 時の対話で生成・更新されます
 # =============================================================================
 # 詳細設定済みか（init で対話すると true になる）
@@ -674,7 +675,7 @@ async function runUpdate() {
   info(`現在の構造: ${cfg.DOMAIN_PATH || d.domainPath} → ${cfg.USECASE_PATH || d.usecasePath} → ${cfg.INFRA_PATH || d.infraPath}`);
   log('');
 
-  const updateTargets = [{ rel: 'scripts/spec-runner.sh', from: 'base' }];
+  const updateTargets = [{ rel: '.spec-runner/scripts/spec-runner.sh', from: 'base', srcRel: 'scripts/spec-runner.sh' }];
   if (fs.existsSync(path.join(CWD, '.claude'))) {
     updateTargets.push(
       { rel: '.claude/hooks/pre-tool-use.sh', from: 'claude' },
@@ -707,7 +708,7 @@ async function runUpdate() {
   };
 
   // 要件定義テンプレートが無ければ追加（init で必須のため）
-  const requirementTemplateDest = path.join(CWD, 'templates', '01_要件定義', 'ひな形.md');
+  const requirementTemplateDest = path.join(CWD, '.spec-runner', 'templates', '01_要件定義', 'ひな形.md');
   if (!fs.existsSync(requirementTemplateDest)) {
     const requirementTemplateSrc = path.join(templatesDir, 'base', 'templates', '01_要件定義', 'ひな形.md');
     if (fs.existsSync(requirementTemplateSrc)) {
@@ -716,9 +717,9 @@ async function runUpdate() {
   }
 
   log(chalk.bold('更新するファイル:'));
-  for (const { rel, from } of updateTargets) {
+  for (const { rel, from, srcRel } of updateTargets) {
     const srcDir = path.join(templatesDir, from);
-    const src  = path.join(srcDir, rel);
+    const src  = path.join(srcDir, srcRel || rel);
     const dest = path.join(CWD, rel);
     if (fs.existsSync(src)) {
       // バックアップ
@@ -730,12 +731,12 @@ async function runUpdate() {
   }
 
   // 実行権限
-  const devShPath = path.join(CWD, 'scripts', 'spec-runner.sh');
+  const devShPath = path.join(CWD, '.spec-runner', 'scripts', 'spec-runner.sh');
   if (fs.existsSync(devShPath) && !isDryRun) fs.chmodSync(devShPath, '755');
 
   log('');
   log(chalk.bold.green('✅ 更新完了'));
-  info('バックアップ: scripts/spec-runner.sh.bak など');
+  info('バックアップ: .spec-runner/scripts/spec-runner.sh.bak など');
 }
 
 // ── エントリー ────────────────────────────────────────────────────────────────

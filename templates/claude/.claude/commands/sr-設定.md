@@ -5,7 +5,7 @@
 以下を**必ずターミナルで実行**してください。
 
 ```bash
-./scripts/spec-runner.sh init
+./.spec-runner/scripts/spec-runner.sh init
 ```
 
 引数なしの init のため、対話で Domain/UseCase のパスやテスト設定を聞かれたあと「最初のユースケースを開始するには…」と表示されて終わります。ユースケースを作る場合は `/sr-初期化 ユースケース名 集約名` を使ってください。

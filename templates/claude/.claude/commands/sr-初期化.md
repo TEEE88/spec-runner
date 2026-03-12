@@ -3,7 +3,7 @@
 **チャットで使うコマンド**。$ARGUMENTS にはユーザーがスラッシュの後に続けて入力した文字列が入ります。以下を**ターミナルで実行**してください（例: ユーザーが `/sr-初期化 顧客登録 顧客管理` と入力した場合）。
 
 ```bash
-./scripts/spec-runner.sh init $ARGUMENTS
+./.spec-runner/scripts/spec-runner.sh init $ARGUMENTS
 ```
 
 - **引数あり**（例: `顧客登録 顧客管理`）: 未設定なら詳細設定の対話 → 続けてユースケース作成。

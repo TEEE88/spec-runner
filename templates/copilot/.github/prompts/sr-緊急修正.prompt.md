@@ -8,7 +8,7 @@ tools: ['shell']
 以下を**必ずシェルで実行**してください。
 
 ```bash
-./scripts/spec-runner.sh hotfix "${input:content:修正内容}"
+./.spec-runner/scripts/spec-runner.sh hotfix "${input:content:修正内容}"
 ```
 
 引数が空の場合は、ユーザーに「修正内容を指定してください」と伝えてください。

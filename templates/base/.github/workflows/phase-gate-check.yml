@@ -133,7 +133,7 @@ jobs:
               echo "✓ hotfix: 負債.md への記録確認"
             else
               echo "✗ hotfix PR では docs/振り返り/負債.md への負債記録が必要です"
-              echo "  ./scripts/spec-runner.sh hotfix を使用してください"
+              echo "  ./.spec-runner/scripts/spec-runner.sh hotfix を使用してください"
               exit 1
             fi
           fi

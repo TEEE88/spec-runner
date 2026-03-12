@@ -8,7 +8,7 @@ tools: ['shell']
 以下を**必ずシェルで実行**してください。
 
 ```bash
-./scripts/spec-runner.sh design-detail ${input:sub:サブフェーズ（domain, usecase, table, infra）}
+./.spec-runner/scripts/spec-runner.sh design-detail ${input:sub:サブフェーズ（domain, usecase, table, infra）}
 ```
 
 引数が無効な場合は、ユーザーに「domain, usecase, table, infra のいずれかを指定してください」と伝えてください。
