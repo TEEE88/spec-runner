@@ -824,11 +824,43 @@ cmd_set_gate() {
   ok "ゲートフラグ設定: $gate = true"
 }
 
+# ── status 表示用：フェーズ・ゲートの日本語ラベル ─────────────────────────────
+phase_ja() {
+  case "$1" in
+    require) echo "要件定義" ;;
+    require-approved) echo "要件承認済み" ;;
+    design-high) echo "概要設計" ;;
+    design-detail*) echo "詳細設計" ;;
+    test-design) echo "テスト設計" ;;
+    implement) echo "実装" ;;
+    complete) echo "完了" ;;
+    fix) echo "修正" ;;
+    *) echo "$1" ;;
+  esac
+}
+gate_ja() {
+  case "$1" in
+    require_approved) echo "要件レビュー済み" ;;
+    glossary_checked) echo "用語集確認済み" ;;
+    high_level_reviewed) echo "概要設計レビュー済み" ;;
+    domain_model_reviewed) echo "ドメインモデルレビュー済み" ;;
+    usecase_design_reviewed) echo "ユースケース設計レビュー済み" ;;
+    table_design_reviewed) echo "テーブル設計レビュー済み" ;;
+    infra_design_reviewed) echo "インフラ設計レビュー済み" ;;
+    test_design_reviewed) echo "テスト設計レビュー済み" ;;
+    test_code_committed) echo "テストコードコミット済み" ;;
+    *) echo "$1" ;;
+  esac
+}
+
 # ── status ─────────────────────────────────────────────────────────────────────
 cmd_status() {
   if [[ ! -f "$STATE_FILE" ]]; then
     info "作業中のユースケースはありません"
-    info "開始するには: ./scripts/spec-runner.sh init <ユースケース名>"
+    info ""
+    info "開始するには: チャットで /sr-init <ユースケース名> またはターミナルで下記を実行してください。"
+    info "  例（チャット）: /sr-init 会員登録 会員"
+    info "  例（ターミナル）: ./scripts/spec-runner.sh init 会員登録 会員"
     return
   fi
 
@@ -838,12 +870,15 @@ cmd_status() {
   branch=$(state_get "branch")
   agg_branch=$(state_get "aggregate_branch")
 
+  local phase_ja_label
+  phase_ja_label=$(phase_ja "$phase")
+
   echo ""
   echo -e "${BOLD}════════════════════════════════════════${NC}"
   echo -e "${BOLD} 現在の作業状況${NC}"
   echo -e "${BOLD}════════════════════════════════════════${NC}"
   echo -e "  ユースケース : ${CYAN}$usecase${NC}"
-  echo -e "  フェーズ    : ${YELLOW}$phase${NC}"
+  echo -e "  フェーズ    : ${YELLOW}$phase_ja_label${NC}"
   echo -e "  ブランチ    : ${BLUE}$branch${NC}"
   [[ -n "$agg_branch" ]] && echo -e "  集約ブランチ: ${BLUE}$agg_branch${NC}"
   echo ""
@@ -854,63 +889,64 @@ cmd_status() {
               domain_model_reviewed usecase_design_reviewed \
               table_design_reviewed infra_design_reviewed \
               test_design_reviewed test_code_committed; do
-    local val
+    local val gate_label
     val=$(state_get "gates.$gate")
+    gate_label=$(gate_ja "$gate")
     if [[ "$val" == "true" ]]; then
-      echo -e "  ${GREEN}✓${NC} $gate"
+      echo -e "  ${GREEN}✓${NC} $gate_label"
     else
-      echo -e "  ${RED}✗${NC} $gate"
+      echo -e "  ${RED}✗${NC} $gate_label"
     fi
   done
 
   echo ""
-  echo -e "${BOLD} 次にやるべきこと${NC}"
+  echo -e "${BOLD} 次にやるべきこと${NC} ${CYAN}（チャットでは /sr-* スラッシュコマンドが使えます）${NC}"
   local req_file high_file
   req_file=$(uc_req)
   high_file=$(uc_high)
   case "$phase" in
     require)
       echo -e "  1. ${CYAN}$req_file${NC} を編集"
-      echo -e "  2. ./scripts/spec-runner.sh review-pass $req_file"
-      echo -e "  3. ./scripts/spec-runner.sh set-gate glossary_checked"
-      echo -e "  4. ./scripts/spec-runner.sh design-high"
+      echo -e "  2. /sr-review $req_file"
+      echo -e "  3. /sr-set-gate glossary_checked"
+      echo -e "  4. /sr-design-high"
       ;;
     design-high)
       echo -e "  1. ${CYAN}$high_file${NC} を編集"
-      echo -e "  2. ./scripts/spec-runner.sh review-pass $high_file"
-      echo -e "  3. ./scripts/spec-runner.sh design-detail domain"
+      echo -e "  2. /sr-review $high_file"
+      echo -e "  3. /sr-design-detail domain"
       ;;
-    design-detail)
+    design-detail*)
       if [[ "$(state_get "gates.domain_model_reviewed")" != "true" ]]; then
         echo -e "  1. docs/detailed/$(uc_slug)/domain.md を編集"
-        echo -e "  2. review-pass のあと ./scripts/spec-runner.sh design-detail usecase"
+        echo -e "  2. /sr-review のあと /sr-design-detail usecase"
       elif [[ "$(state_get "gates.usecase_design_reviewed")" != "true" ]]; then
         echo -e "  1. docs/detailed/$(uc_slug)/usecase.md を編集"
-        echo -e "  2. review-pass のあと ./scripts/spec-runner.sh design-detail table"
+        echo -e "  2. /sr-review のあと /sr-design-detail table"
       elif [[ "$(state_get "gates.table_design_reviewed")" != "true" ]]; then
         echo -e "  1. docs/detailed/$(uc_slug)/table.md を編集"
-        echo -e "  2. review-pass のあと ./scripts/spec-runner.sh design-detail infra"
+        echo -e "  2. /sr-review のあと /sr-design-detail infra"
       elif [[ "$(state_get "gates.infra_design_reviewed")" != "true" ]]; then
         echo -e "  1. docs/detailed/$(uc_slug)/infra.md を編集"
-        echo -e "  2. review-pass のあと ./scripts/spec-runner.sh test-design"
+        echo -e "  2. /sr-review のあと /sr-test-design"
       else
-        echo -e "  ./scripts/spec-runner.sh test-design"
+        echo -e "  /sr-test-design"
       fi
       ;;
     test-design)
       echo -e "  1. docs/test-design/$(uc_slug).md を編集し、テストコードを書く（Red）"
-      echo -e "  2. テストコードをコミット → ./scripts/spec-runner.sh set-gate test_code_committed"
-      echo -e "  3. ./scripts/spec-runner.sh review-pass docs/test-design/$(uc_slug).md"
-      echo -e "  4. ./scripts/spec-runner.sh implement"
+      echo -e "  2. テストコードをコミット → /sr-set-gate test_code_committed"
+      echo -e "  3. /sr-review docs/test-design/$(uc_slug).md"
+      echo -e "  4. /sr-implement"
       ;;
     implement)
-      echo -e "  実装してテストを Green にしたら: ./scripts/spec-runner.sh complete"
+      echo -e "  実装してテストを Green にしたら: /sr-complete"
       ;;
     complete)
       echo -e "  完了。PR を作成してマージしてください。"
       ;;
     fix)
-      echo -e "  案内に従って該当ドキュメントを修正し、必要なら design-detail 等から再実行。"
+      echo -e "  案内に従って該当ドキュメントを修正し、必要なら /sr-design-detail 等から再実行。"
       ;;
     *)
       echo -e "  ./scripts/spec-runner.sh help でコマンド一覧を確認"

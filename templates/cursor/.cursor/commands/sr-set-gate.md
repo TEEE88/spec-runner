@@ -1,6 +1,6 @@
 # /sr-set-gate
 
-以下を**必ずターミナルで実行**してください。ユーザーが続けて入力したゲート名を渡します（例: `/sr-set-gate glossary_checked`）。
+**チャットで使うコマンド**。ユーザーが `/sr-set-gate` の後に続けて入力したゲート名で、以下を**ターミナルで実行**してください（例: `/sr-set-gate glossary_checked`）。
 
 ```bash
 ./scripts/spec-runner.sh set-gate <ユーザーが入力したゲート名>

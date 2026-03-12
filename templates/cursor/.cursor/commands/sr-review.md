@@ -1,6 +1,6 @@
 # /sr-review
 
-以下を**必ずターミナルで実行**してください。ユーザーが続けて入力したファイルパスを渡します（例: `/sr-review docs/requirements/顧客登録.md`）。
+**チャットで使うコマンド**。ユーザーが `/sr-review` の後に続けて入力したファイルパスで、以下を**ターミナルで実行**してください（例: `/sr-review docs/requirements/顧客登録.md`）。
 
 ```bash
 ./scripts/spec-runner.sh review-pass <ユーザーが入力したファイルパス>

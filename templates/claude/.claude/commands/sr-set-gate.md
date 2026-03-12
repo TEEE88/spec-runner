@@ -1,6 +1,6 @@
 # /sr-set-gate
 
-以下を**必ずターミナルで実行**してください。$ARGUMENTS にはゲート名を指定します（例: `/sr-set-gate glossary_checked`）。
+**チャットで使うコマンド**。$ARGUMENTS にゲート名を指定し、以下を**ターミナルで実行**してください（例: `/sr-set-gate glossary_checked`）。
 
 ```bash
 ./scripts/spec-runner.sh set-gate $ARGUMENTS

@@ -1,11 +1,11 @@
 ---
 agent: 'agent'
-description: 'spec-runner: ユースケースを初期化（未設定なら詳細設定の対話から）'
+description: 'spec-runner: ユースケースを初期化（未設定なら詳細設定の対話から）。チャットで /sr-init ユースケース名 集約名 と入力して使う'
 argument-hint: 'ユースケース名 集約名（例: 顧客登録 顧客管理）。空なら設定対話のみ'
 tools: ['shell']
 ---
 
-以下を**必ずシェルで実行**してください。
+**チャットで /sr-init と入力して使う**。以下を**必ずシェルで実行**してください。
 
 ```bash
 ./scripts/spec-runner.sh init ${input:args:ユースケース名 集約名（スペース区切り。集約名は省略可）}
