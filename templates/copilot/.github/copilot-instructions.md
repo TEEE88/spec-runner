@@ -7,7 +7,7 @@
 - 実装コードを書く前に **必ず** `./scripts/spec-runner.sh status` を実行する。
 - `phase` が `implement` でないときは実装コードを生成しない。ユーザーに「現在のフェーズを確認してください」と伝える。
 - ユーザーが「init して」「status 確認して」「design-high で進めて」などと言ったら、対応する `./scripts/spec-runner.sh` をターミナルで実行する。
-- スラッシュコマンド `/sr-init` などは `.github/prompts/*.prompt.md` に定義済み。`tools: [shell]` でシェル実行される。
+- スラッシュコマンド `/sr-初期化` などは `.github/prompts/*.prompt.md` に定義済み（コマンド名は日本語）。`tools: [shell]` でシェル実行される。
 
 ## TDD（テスト駆動）— デフォルトで有効
 

@@ -72,45 +72,45 @@ jobs:
           echo "$CHANGED"
           echo ""
 
-          # DOMAIN_PATH が変更されたら docs/detailed/*/domain.md も更新が必要
+          # DOMAIN_PATH が変更されたら docs/03_詳細設計/*/ドメイン.md も更新が必要
           if [[ -n "$DOMAIN_PATH" ]]; then
             DOMAIN_CHANGED=$(echo "$CHANGED" | grep -E "^${DOMAIN_PATH}/" || true)
             if [[ -n "$DOMAIN_CHANGED" ]]; then
-              DETAIL_DOC_CHANGED=$(echo "$CHANGED" | grep -E 'docs/detailed/.*/domain\.md' || true)
+              DETAIL_DOC_CHANGED=$(echo "$CHANGED" | grep -E 'docs/03_詳細設計/.*/ドメイン\.md' || true)
               if [[ -z "$DETAIL_DOC_CHANGED" ]]; then
-                echo "✗ $DOMAIN_PATH/ が変更されましたが docs/detailed/*/domain.md が更新されていません"
+                echo "✗ $DOMAIN_PATH/ が変更されましたが docs/03_詳細設計/*/ドメイン.md が更新されていません"
                 echo "$DOMAIN_CHANGED" | sed 's/^/    /'
                 ERRORS=$((ERRORS + 1))
               else
-                echo "✓ $DOMAIN_PATH/ 変更 → domain.md 更新確認"
+                echo "✓ $DOMAIN_PATH/ 変更 → ドメイン.md 更新確認"
               fi
             fi
           fi
 
-          # USECASE_PATH が変更されたら docs/detailed/*/usecase.md も更新が必要
+          # USECASE_PATH が変更されたら docs/03_詳細設計/*/ユースケース.md も更新が必要
           if [[ -n "$USECASE_PATH" ]]; then
             USECASE_CHANGED=$(echo "$CHANGED" | grep -E "^${USECASE_PATH}/" || true)
             if [[ -n "$USECASE_CHANGED" ]]; then
-              USECASE_DOC_CHANGED=$(echo "$CHANGED" | grep -E 'docs/detailed/.*/usecase\.md' || true)
+              USECASE_DOC_CHANGED=$(echo "$CHANGED" | grep -E 'docs/03_詳細設計/.*/ユースケース\.md' || true)
               if [[ -z "$USECASE_DOC_CHANGED" ]]; then
-                echo "✗ $USECASE_PATH/ が変更されましたが docs/detailed/*/usecase.md が更新されていません"
+                echo "✗ $USECASE_PATH/ が変更されましたが docs/03_詳細設計/*/ユースケース.md が更新されていません"
                 ERRORS=$((ERRORS + 1))
               else
-                echo "✓ $USECASE_PATH/ 変更 → usecase.md 更新確認"
+                echo "✓ $USECASE_PATH/ 変更 → ユースケース.md 更新確認"
               fi
             fi
           fi
 
-          # MIGRATION_DIR が変更されたら docs/detailed/*/table.md も更新が必要
+          # MIGRATION_DIR が変更されたら docs/03_詳細設計/*/テーブル.md も更新が必要
           if [[ -n "$MIGRATION_DIR" ]]; then
             MIGRATION_CHANGED=$(echo "$CHANGED" | grep -E "^${MIGRATION_DIR}/" || true)
             if [[ -n "$MIGRATION_CHANGED" ]]; then
-              TABLE_DOC_CHANGED=$(echo "$CHANGED" | grep -E 'docs/detailed/.*/table\.md' || true)
+              TABLE_DOC_CHANGED=$(echo "$CHANGED" | grep -E 'docs/03_詳細設計/.*/テーブル\.md' || true)
               if [[ -z "$TABLE_DOC_CHANGED" ]]; then
-                echo "✗ $MIGRATION_DIR/ が変更されましたが docs/detailed/*/table.md が更新されていません"
+                echo "✗ $MIGRATION_DIR/ が変更されましたが docs/03_詳細設計/*/テーブル.md が更新されていません"
                 ERRORS=$((ERRORS + 1))
               else
-                echo "✓ $MIGRATION_DIR/ 変更 → table.md 更新確認"
+                echo "✓ $MIGRATION_DIR/ 変更 → テーブル.md 更新確認"
               fi
             fi
           fi
@@ -129,10 +129,10 @@ jobs:
         run: |
           BRANCH="${{ github.head_ref }}"
           if [[ "$BRANCH" =~ ^hotfix/ ]]; then
-            if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q 'docs/review/debt.md'; then
-              echo "✓ hotfix: debt.md への記録確認"
+            if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q 'docs/振り返り/負債.md'; then
+              echo "✓ hotfix: 負債.md への記録確認"
             else
-              echo "✗ hotfix PR では docs/review/debt.md への負債記録が必要です"
+              echo "✗ hotfix PR では docs/振り返り/負債.md への負債記録が必要です"
               echo "  ./scripts/spec-runner.sh hotfix を使用してください"
               exit 1
             fi
@@ -174,8 +174,8 @@ jobs:
       - name: ADR 対応コードリンクチェック
         run: |
           WARNINGS=0
-          if [[ -d "docs/adr" ]]; then
-            for adr in docs/adr/[0-9]*.md; do
+          if [[ -d "docs/99_設計判断記録" ]]; then
+            for adr in docs/99_設計判断記録/[0-9]*.md; do
               [[ -f "$adr" ]] || continue
               # 「## 対応コード」セクションからファイルパスを抽出
               code_refs=$(awk '/^## 対応コード/{found=1; next} /^## /{found=0} found && /`.*\.(php|ts|tsx)`/{print}' "$adr" | grep -oP '`[^`]+`' | tr -d '`' || true)
@@ -196,8 +196,8 @@ jobs:
             echo "✓ ADR対応コードリンク: OK"
           fi
 
-      # ─── 6. glossary.md の新エンティティチェック（config.sh の DOMAIN_PATH / SOURCE_EXTENSIONS）──
-      - name: 新規Domain classのglossary.md登録チェック
+      # ─── 6. 用語集.md の新エンティティチェック（config.sh の DOMAIN_PATH / SOURCE_EXTENSIONS）──
+      - name: 新規Domain classの用語集登録チェック
         env:
           DOMAIN_PATH: ${{ env.DOMAIN_PATH }}
           SOURCE_EXTENSIONS: ${{ env.SOURCE_EXTENSIONS }}
@@ -207,10 +207,10 @@ jobs:
           NEW_DOMAIN=$(echo "$CHANGED" | grep -E "^${DOMAIN_PATH}/.*\.(${EXT_PATTERN})$" | xargs git diff --diff-filter=A --name-only origin/${{ github.base_ref }}...HEAD 2>/dev/null || true)
 
           if [[ -n "$NEW_DOMAIN" && -n "$DOMAIN_PATH" ]]; then
-            if echo "$CHANGED" | grep -q 'docs/glossary.md'; then
-              echo "✓ 新規Domainクラス追加 → glossary.md 更新確認"
+            if echo "$CHANGED" | grep -q 'docs/03_用語集.md'; then
+              echo "✓ 新規Domainクラス追加 → 用語集.md 更新確認"
             else
-              echo "⚠ 新規Domainクラスが追加されましたが glossary.md が更新されていません"
+              echo "⚠ 新規Domainクラスが追加されましたが 用語集.md が更新されていません"
               echo "  新しいエンティティ/値オブジェクトにはユビキタス言語の追加が必要です"
             fi
           fi

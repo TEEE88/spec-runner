@@ -39,7 +39,7 @@ esac
 # 設計ドキュメントや設定ファイルへの書き込みは常に許可
 case "$file_path" in
   */docs/*|*/CLAUDE.md|*/.spec-runner/state.json|*/scripts/*|*/.github/*|\
-  */templates/*|*/glossary.md|*.json|*.yml|*.yaml|*.sh|*.lock|\
+  */templates/*|*/03_用語集.md|*.json|*.yml|*.yaml|*.sh|*.lock|\
   */.spec-runner/*|*/node_modules/*|*/vendor/*)
     exit 0
     ;;

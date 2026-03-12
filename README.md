@@ -32,6 +32,14 @@ npx spec-runner
 対話では**どの開発環境か**だけ聞かれる（AI ツール・CI・ドキュメント言語）。  
 ここまでで、`.spec-runner/config.sh`（既定値）と `scripts/`・`docs/`・`.github/` などができる。
 
+### 3.5 プロジェクトの土台を書く（推奨・init の前）
+
+- **`docs/01_憲章.md`** … プロジェクト憲章（不変原則・品質ルール・フォルダ構成の考え方）。技術に依存しない。
+- **`docs/02_仕様.md`** … 何を作るか・なぜか・スコープ・想定ユーザー。
+
+チャットで `/sr-憲章` または `/sr-仕様` と入力すると編集を案内できる。  
+（[Spec Kit](https://github.com/tessl-labs/spec-kit) の constitution / specify に相当。）
+
 ### 4. init で詳細設定と最初のユースケースを開始する
 
 ```bash
@@ -46,7 +54,7 @@ npx spec-runner
 - Domain が import してはいけないパターン（正規表現）
 - DDD を使うか / TDD を必須にするか / CI / ドキュメントの言語
 
-設定後、`docs/requirements/会員登録.md` ができ、ブランチ `feature/uc-会員登録` が作られる。
+設定後、`docs/01_要件/会員登録.md` ができ、ブランチ `feature/uc-会員登録` が作られる。
 
 - 引数なしで `./scripts/spec-runner.sh init` だけ実行すると、**設定対話のみ**（ユースケースは作らない）。
 - すでに設定済みの場合は対話をスキップし、そのままユースケース作成に進む。
@@ -55,28 +63,28 @@ npx spec-runner
 
 ```
 ① 要件定義
-   docs/requirements/会員登録.md を書く
+   docs/01_要件/会員登録.md を書く
 
 ② 要件レビュー通過
-   ./scripts/spec-runner.sh review-pass docs/requirements/会員登録.md
+   ./scripts/spec-runner.sh review-pass docs/01_要件/会員登録.md
    ./scripts/spec-runner.sh set-gate glossary_checked
 
 ③ 概要設計
    ./scripts/spec-runner.sh design-high
-   docs/high-level/会員登録.md を書く → review-pass
+   docs/02_概要設計/会員登録.md を書く → review-pass
 
 ④ 詳細設計（この順）
-   ./scripts/spec-runner.sh design-detail domain   → domain.md を書く → review-pass
-   ./scripts/spec-runner.sh design-detail usecase  → usecase.md を書く → review-pass
-   ./scripts/spec-runner.sh design-detail table    → table.md を書く → review-pass
-   ./scripts/spec-runner.sh design-detail infra   → infra.md を書く → review-pass
+   ./scripts/spec-runner.sh design-detail domain   → ドメイン.md を書く → review-pass
+   ./scripts/spec-runner.sh design-detail usecase  → ユースケース.md を書く → review-pass
+   ./scripts/spec-runner.sh design-detail table    → テーブル.md を書く → review-pass
+   ./scripts/spec-runner.sh design-detail infra   → インフラ.md を書く → review-pass
 
 ⑤ テスト設計
    ./scripts/spec-runner.sh test-design
-   docs/test-design/会員登録.md を書く
+   docs/04_テスト設計/会員登録.md を書く
    テストコードを先に書く（Red）→ コミット
    ./scripts/spec-runner.sh set-gate test_code_committed
-   ./scripts/spec-runner.sh review-pass docs/test-design/会員登録.md
+   ./scripts/spec-runner.sh review-pass docs/04_テスト設計/会員登録.md
 
 ⑥ 実装
    ./scripts/spec-runner.sh implement
@@ -120,6 +128,22 @@ curl -sSL https://raw.githubusercontent.com/spec-runner/spec-runner/main/install
 
 ---
 
+## Spec Kit との対応
+
+[Spec Kit](https://github.com/tessl-labs/spec-kit) 風の「憲章 → 仕様 → 計画 → 実装」を取り入れている。
+
+| Spec Kit | spec-runner での対応 |
+|----------|----------------------|
+| ① constitution（憲章） | `docs/01_憲章.md`。不変原則・品質ルール。`/sr-憲章` |
+| ② specify（仕様） | `docs/02_仕様.md`（プロジェクト全体）+ `docs/01_要件/<UC>.md`（機能単位）。`/sr-仕様` |
+| ③ clarify（曖昧さ解消） | 各フェーズのレビュー・`docs/03_用語集.md` での用語統一 |
+| ④ plan（技術計画） | `design-high` → `design-detail`（domain / usecase / table / infra） |
+| ⑤ analyze（整合性） | `review-pass` と CI の phase-gate-check |
+| ⑥ tasks（タスク分割） | テスト設計・実装フェーズでのタスク単位の進め方 |
+| ⑦ implement | `implement` → `complete` |
+
+---
+
 ## 設定
 
 `.spec-runner/config.sh` でパスやコマンドを変えられる。CI とゲートはこの設定を参照する。
@@ -140,9 +164,23 @@ curl -sSL https://raw.githubusercontent.com/spec-runner/spec-runner/main/install
 ├── .github/
 │   ├── workflows/phase-gate-check.yml
 │   └── PULL_REQUEST_TEMPLATE.md
-├── docs/                # 要件・概要・詳細設計・テスト設計
+├── docs/                # 付番済み（01_〜04_、99_）要件・概要・詳細設計・テスト設計・設計判断記録
 ├── scripts/spec-runner.sh
-└── templates/requirement/template.md
+└── templates/           # すべてのテンプレート（DDD用語・付番は日本語）
+    ├── 01_要件定義/ひな形.md   # init で docs/01_要件/<UC>.md を生成
+    ├── 03_詳細設計/            # design-detail で docs/03_詳細設計/<UC>/*.md を生成
+    │   ├── ドメイン.md
+    │   ├── ユースケース.md
+    │   ├── テーブル.md
+    │   └── インフラ.md
+    ├── 99_設計判断記録/ひな形.md  # ADR ひな形（docs/99_設計判断記録/ にもコピー）
+    └── 初期ドキュメント/        # deploy 時に docs/ に展開
+        ├── 01_憲章.md
+        ├── 02_仕様.md
+        ├── 03_用語集.md
+        ├── テンプレート一覧.md
+        ├── 振り返り/負債.md
+        └── 99_設計判断記録/.gitkeep
 ```
 
 選択した AI ツールに応じて `.claude/` や `.cursorrules` や `.github/copilot-instructions.md` などが追加される。
@@ -161,21 +199,23 @@ npx spec-runner --update
 
 ## スラッシュコマンド
 
-**`/sr-status` を実行すると、現在のフェーズと「次にやるべきこと」（次に打つコマンド）が動的に表示される。** フェーズ移行（概要設計〜実装完了）はこの案内に従えばよい。
+**`/sr-状態` を実行すると、現在のフェーズと「次にやるべきこと」（次に打つコマンド）が動的に表示される。** フェーズ移行（概要設計〜実装完了）はこの案内に従えばよい。
 
 | コマンド | 説明 |
 |----------|------|
-| `/sr-configure` | 詳細設定の対話のみ |
-| `/sr-init` [ユースケース名] [集約名] | ユースケース開始（未設定時は対話から） |
-| `/sr-status` | フェーズ・ゲート＋**次にやるべきこと**を表示 |
-| `/sr-review` ファイル | レビュー通過 |
-| `/sr-set-gate` ゲート名 | ゲート手動通過 |
-| `/sr-fix` 内容 | 修正 |
-| `/sr-hotfix` 内容 | 緊急修正 |
+| `/sr-設定` | 詳細設定の対話のみ |
+| `/sr-憲章` | プロジェクト憲章（`docs/01_憲章.md`）を編集（init 前推奨） |
+| `/sr-仕様` | プロジェクト仕様（`docs/02_仕様.md`）を編集（init 前推奨） |
+| `/sr-初期化` [ユースケース名] [集約名] | ユースケース開始（未設定時は対話から） |
+| `/sr-状態` | フェーズ・ゲート＋**次にやるべきこと**を表示 |
+| `/sr-レビュー` ファイル | レビュー通過 |
+| `/sr-ゲート設定` ゲート名 | ゲート手動通過 |
+| `/sr-修正` 内容 | 修正 |
+| `/sr-緊急修正` 内容 | 緊急修正 |
 
-design-high / design-detail / test-design / implement / complete は、status の案内に表示されるので個別に指定不要。
+概要設計・詳細設計・テスト設計・実装・完了は、`/sr-状態` の案内に表示されるので個別に指定不要。
 
-定義: Claude `.claude/commands/` / Cursor `.cursor/commands/` / Copilot `.github/prompts/*.prompt.md`
+定義: Claude `.claude/commands/` / Cursor `.cursor/commands/` / Copilot `.github/prompts/*.prompt.md`（いずれもファイル名・コマンド名は日本語）
 
 ---
 

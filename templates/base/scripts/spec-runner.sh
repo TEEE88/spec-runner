@@ -27,8 +27,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 STATE_FILE="$PROJECT_ROOT/.spec-runner/state.json"
-DEBT_FILE="$PROJECT_ROOT/docs/review/debt.md"
-GLOSSARY="$PROJECT_ROOT/docs/glossary.md"
+DEBT_FILE="$PROJECT_ROOT/docs/振り返り/負債.md"
+GLOSSARY="$PROJECT_ROOT/docs/03_用語集.md"
 
 # ── フレームワーク設定を読み込む ───────────────────────────────────────────────
 # npx spec-runner によって生成された .spec-runner/config.sh を読み込む
@@ -197,10 +197,10 @@ check_debt() {
 # ── usecase/aggregate のパス計算 ───────────────────────────────────────────
 uc_slug()   { echo "$(state_get usecase)" | tr ' ' '-'; }
 agg_slug()  { echo "$(state_get aggregate)" | tr ' ' '-'; }
-uc_req()    { echo "$PROJECT_ROOT/docs/requirements/$(uc_slug).md"; }
-uc_high()   { echo "$PROJECT_ROOT/docs/high-level/$(uc_slug).md"; }
-uc_detail() { echo "$PROJECT_ROOT/docs/detailed/$(uc_slug)"; }
-uc_test()   { echo "$PROJECT_ROOT/docs/test-design/$(uc_slug).md"; }
+uc_req()    { echo "$PROJECT_ROOT/docs/01_要件/$(uc_slug).md"; }
+uc_high()   { echo "$PROJECT_ROOT/docs/02_概要設計/$(uc_slug).md"; }
+uc_detail() { echo "$PROJECT_ROOT/docs/03_詳細設計/$(uc_slug)"; }
+uc_test()   { echo "$PROJECT_ROOT/docs/04_テスト設計/$(uc_slug).md"; }
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # コマンド実装
@@ -282,7 +282,7 @@ cmd_init() {
   # 要件定義ファイルをテンプレートから生成（templates/requirement/template.md を必須とする）
   local req_file tmpl
   req_file=$(uc_req)
-  tmpl="$PROJECT_ROOT/templates/requirement/template.md"
+  tmpl="$PROJECT_ROOT/templates/01_要件定義/ひな形.md"
   [[ -f "$tmpl" ]] || die "要件テンプレートがありません: $tmpl （npx spec-runner でセットアップしてください）"
 
   mkdir -p "$(dirname "$req_file")"
@@ -331,7 +331,7 @@ cmd_design_high() {
 
   check_file "$req_file" "要件定義ファイル" || ((errors++))
   check_status "$req_file" "approved" "要件定義のステータス" || ((errors++))
-  check_gate "glossary_checked" "glossary.md の確認済み" || ((errors++))
+  check_gate "glossary_checked" "用語集.md の確認済み" || ((errors++))
 
   if [[ $errors -gt 0 ]]; then
     echo ""
@@ -374,7 +374,7 @@ updated: $(date +%Y-%m-%d)
 
 ## ドメインモデルの洗い出し
 
-<!-- glossary.md の日本語名で書く -->
+<!-- 用語集.md の日本語名で書く -->
 
 ### エンティティ候補
 
@@ -475,22 +475,22 @@ cmd_design_detail() {
   detail_dir=$(uc_detail)
   case "$sub" in
     usecase)
-      check_file "$detail_dir/domain.md" "ドメインモデル設計" || ((errors++))
-      check_status "$detail_dir/domain.md" "reviewed" "ドメインモデルのレビュー" || ((errors++))
+      check_file "$detail_dir/ドメイン.md" "ドメインモデル設計" || ((errors++))
+      check_status "$detail_dir/ドメイン.md" "reviewed" "ドメインモデルのレビュー" || ((errors++))
       ;;
     table)
-      check_file "$detail_dir/domain.md" "ドメインモデル設計" || ((errors++))
-      check_status "$detail_dir/domain.md" "reviewed" "ドメインモデルのレビュー" || ((errors++))
-      check_file "$detail_dir/usecase.md" "ユースケース設計" || ((errors++))
-      check_status "$detail_dir/usecase.md" "reviewed" "ユースケース設計のレビュー" || ((errors++))
+      check_file "$detail_dir/ドメイン.md" "ドメインモデル設計" || ((errors++))
+      check_status "$detail_dir/ドメイン.md" "reviewed" "ドメインモデルのレビュー" || ((errors++))
+      check_file "$detail_dir/ユースケース.md" "ユースケース設計" || ((errors++))
+      check_status "$detail_dir/ユースケース.md" "reviewed" "ユースケース設計のレビュー" || ((errors++))
       ;;
     infra)
-      check_file "$detail_dir/domain.md" "ドメインモデル設計" || ((errors++))
-      check_status "$detail_dir/domain.md" "reviewed" "ドメインモデルのレビュー" || ((errors++))
-      check_file "$detail_dir/usecase.md" "ユースケース設計" || ((errors++))
-      check_status "$detail_dir/usecase.md" "reviewed" "ユースケース設計のレビュー" || ((errors++))
-      check_file "$detail_dir/table.md" "テーブル設計" || ((errors++))
-      check_status "$detail_dir/table.md" "reviewed" "テーブル設計のレビュー" || ((errors++))
+      check_file "$detail_dir/ドメイン.md" "ドメインモデル設計" || ((errors++))
+      check_status "$detail_dir/ドメイン.md" "reviewed" "ドメインモデルのレビュー" || ((errors++))
+      check_file "$detail_dir/ユースケース.md" "ユースケース設計" || ((errors++))
+      check_status "$detail_dir/ユースケース.md" "reviewed" "ユースケース設計のレビュー" || ((errors++))
+      check_file "$detail_dir/テーブル.md" "テーブル設計" || ((errors++))
+      check_status "$detail_dir/テーブル.md" "reviewed" "テーブル設計のレビュー" || ((errors++))
       ;;
   esac
 
@@ -504,13 +504,23 @@ cmd_design_detail() {
   state_set_str "phase" "design-detail-$sub"
   state_push_history "design-detail-$sub フェーズ開始"
 
+  # サブ種別→日本語ファイル名（ドメイン駆動の用語をそのまま）
+  local sub_ja
+  case "$sub" in
+    domain)  sub_ja="ドメイン" ;;
+    usecase) sub_ja="ユースケース" ;;
+    table)   sub_ja="テーブル" ;;
+    infra)   sub_ja="インフラ" ;;
+    *)       sub_ja="$sub" ;;
+  esac
+
   # ファイルをテンプレートから生成
   local dest_file usecase
   usecase=$(state_get "usecase")
-  dest_file="$detail_dir/$sub.md"
+  dest_file="$detail_dir/${sub_ja}.md"
   mkdir -p "$detail_dir"
 
-  local tmpl="$PROJECT_ROOT/templates/detailed/$sub.md"
+  local tmpl="$PROJECT_ROOT/templates/03_詳細設計/${sub_ja}.md"
   if [[ ! -f "$dest_file" ]]; then
     if [[ -f "$tmpl" ]]; then
       sed "s/{{USECASE}}/$usecase/g; s/{{DATE}}/$(date +%Y-%m-%d)/g" "$tmpl" > "$dest_file"
@@ -553,16 +563,16 @@ cmd_test_design() {
   local detail_dir
   detail_dir=$(uc_detail)
 
-  for sub in domain usecase table infra; do
-    check_file "$detail_dir/$sub.md" "詳細設計/$sub.md" || ((errors++))
-    check_status "$detail_dir/$sub.md" "reviewed" "詳細設計/$sub.md のレビュー" || ((errors++))
+  for sub_ja in ドメイン ユースケース テーブル インフラ; do
+    check_file "$detail_dir/$sub_ja.md" "03_詳細設計/$sub_ja.md" || ((errors++))
+    check_status "$detail_dir/$sub_ja.md" "reviewed" "03_詳細設計/$sub_ja.md のレビュー" || ((errors++))
   done
 
-  # ADRチェック（必要なADRが作成されているか確認を促す）
+  # 設計判断記録チェック（ADR が 1 件もない場合に促す）
   local adr_count
-  adr_count=$(find "$PROJECT_ROOT/docs/adr" -name "*.md" ! -name "TEMPLATE.md" 2>/dev/null | wc -l | tr -d ' ')
+  adr_count=$(find "$PROJECT_ROOT/docs/99_設計判断記録" -name "*.md" ! -name "ひな形.md" 2>/dev/null | wc -l | tr -d ' ')
   if [[ "$adr_count" -eq 0 ]]; then
-    warn "docs/adr/ にADRが1件もありません。設計判断があればADRを作成してください"
+    warn "docs/99_設計判断記録/ にADRが1件もありません。設計判断があれば作成してください"
   fi
 
   if [[ $errors -gt 0 ]]; then
@@ -770,7 +780,7 @@ cmd_review_pass() {
   uc_slug_val=$(uc_slug)
 
   case "$file" in
-    *requirements*)
+    *01_要件*)
       state_set_bool "gates.require_approved" true
       state_set_str "phase" "require-approved"
       # statusもapprovedに（同一デバイス上で一時ファイル）
@@ -778,35 +788,35 @@ cmd_review_pass() {
       tmp2="${file}.tmp.$$"
       sed "s/^status: .*/status: approved/" "$file" > "$tmp2" && mv "$tmp2" "$file"
       ok "ゲート更新: require_approved = true"
-      info "次: glossary.md を確認後 ./scripts/spec-runner.sh set-gate glossary_checked"
+      info "次: docs/03_用語集.md を確認後 ./scripts/spec-runner.sh set-gate glossary_checked"
       info "    ./scripts/spec-runner.sh design-high"
       ;;
-    *high-level*)
+    *02_概要設計*)
       state_set_bool "gates.high_level_reviewed" true
       ok "ゲート更新: high_level_reviewed = true"
       info "次: ./scripts/spec-runner.sh design-detail domain"
       ;;
-    *domain*)
+    *ドメイン*)
       state_set_bool "gates.domain_model_reviewed" true
       ok "ゲート更新: domain_model_reviewed = true"
       info "次: ./scripts/spec-runner.sh design-detail usecase"
       ;;
-    *usecase*)
+    *ユースケース*)
       state_set_bool "gates.usecase_design_reviewed" true
       ok "ゲート更新: usecase_design_reviewed = true"
       info "次: ./scripts/spec-runner.sh design-detail table"
       ;;
-    *table*)
+    *テーブル*)
       state_set_bool "gates.table_design_reviewed" true
       ok "ゲート更新: table_design_reviewed = true"
       info "次: ./scripts/spec-runner.sh design-detail infra"
       ;;
-    *infra*)
+    *インフラ*)
       state_set_bool "gates.infra_design_reviewed" true
       ok "ゲート更新: infra_design_reviewed = true"
       info "次: ./scripts/spec-runner.sh test-design"
       ;;
-    *test-design*)
+    *04_テスト設計*)
       state_set_bool "gates.test_design_reviewed" true
       ok "ゲート更新: test_design_reviewed = true"
       info "テストコードをコミット後: ./scripts/spec-runner.sh set-gate test_code_committed"
@@ -853,16 +863,57 @@ gate_ja() {
   esac
 }
 
+# ── status: プロジェクト土台（憲章・仕様）の未記入チェック ─────────────────────
+# プレースホルダーが残っている＝テンプレートのまま＝未記入とみなす
+CONSTITUTION_PLACEHOLDER="この節を編集"
+SPECIFY_PLACEHOLDER="（1〜2文で。例:"
+
+is_foundation_written() {
+  local kind="$1"
+  case "$kind" in
+    constitution)
+      [[ -f "$PROJECT_ROOT/docs/01_憲章.md" ]] && ! grep -q "$CONSTITUTION_PLACEHOLDER" "$PROJECT_ROOT/docs/01_憲章.md" 2>/dev/null
+      ;;
+    specify)
+      [[ -f "$PROJECT_ROOT/docs/02_仕様.md" ]] && ! grep -q "$SPECIFY_PLACEHOLDER" "$PROJECT_ROOT/docs/02_仕様.md" 2>/dev/null
+      ;;
+    *) return 1 ;;
+  esac
+}
+
+# 憲章・仕様の未記入案内を表示。mode: no_state（ユースケースなし） or has_state（開始済み）
+status_show_foundation_reminder() {
+  local mode="${1:-no_state}"
+  local c_ok s_ok
+  is_foundation_written constitution && c_ok=1 || c_ok=0
+  is_foundation_written specify && s_ok=1 || s_ok=0
+  [[ $c_ok -eq 1 && $s_ok -eq 1 ]] && return
+
+  if [[ "$mode" == "no_state" ]]; then
+    info "プロジェクトの土台（init の前推奨）:"
+    [[ $c_ok -eq 0 ]] && info "  ✗ 憲章がまだ記入されていません → docs/01_憲章.md （/sr-憲章 で編集）"
+    [[ $s_ok -eq 0 ]] && info "  ✗ 仕様がまだ記入されていません   → docs/02_仕様.md （/sr-仕様 で編集）"
+  else
+    info "💡 プロジェクトの土台:"
+    [[ $c_ok -eq 0 ]] && info "  憲章がまだ → /sr-憲章"
+    [[ $s_ok -eq 0 ]] && info "  仕様がまだ → /sr-仕様"
+  fi
+  info ""
+}
+
 # ── status ─────────────────────────────────────────────────────────────────────
 cmd_status() {
   if [[ ! -f "$STATE_FILE" ]]; then
     info "作業中のユースケースはありません"
     info ""
-    info "開始するには: チャットで /sr-init <ユースケース名> またはターミナルで下記を実行してください。"
-    info "  例（チャット）: /sr-init 会員登録 会員"
+    status_show_foundation_reminder no_state
+    info "開始するには: チャットで /sr-初期化 <ユースケース名> またはターミナルで下記を実行してください。"
+    info "  例（チャット）: /sr-初期化 会員登録 会員"
     info "  例（ターミナル）: ./scripts/spec-runner.sh init 会員登録 会員"
     return
   fi
+
+  status_show_foundation_reminder has_state
 
   local usecase phase branch agg_branch
   usecase=$(state_get "usecase")
@@ -907,46 +958,46 @@ cmd_status() {
   case "$phase" in
     require)
       echo -e "  1. ${CYAN}$req_file${NC} を編集"
-      echo -e "  2. /sr-review $req_file"
-      echo -e "  3. /sr-set-gate glossary_checked"
-      echo -e "  4. /sr-design-high"
+      echo -e "  2. /sr-レビュー $req_file"
+      echo -e "  3. /sr-ゲート設定 glossary_checked"
+      echo -e "  4. /sr-概要設計"
       ;;
     design-high)
       echo -e "  1. ${CYAN}$high_file${NC} を編集"
-      echo -e "  2. /sr-review $high_file"
-      echo -e "  3. /sr-design-detail domain"
+      echo -e "  2. /sr-レビュー $high_file"
+      echo -e "  3. /sr-詳細設計 domain"
       ;;
     design-detail*)
       if [[ "$(state_get "gates.domain_model_reviewed")" != "true" ]]; then
-        echo -e "  1. docs/detailed/$(uc_slug)/domain.md を編集"
-        echo -e "  2. /sr-review のあと /sr-design-detail usecase"
+        echo -e "  1. docs/03_詳細設計/$(uc_slug)/ドメイン.md を編集"
+        echo -e "  2. /sr-レビュー のあと /sr-詳細設計 usecase"
       elif [[ "$(state_get "gates.usecase_design_reviewed")" != "true" ]]; then
-        echo -e "  1. docs/detailed/$(uc_slug)/usecase.md を編集"
-        echo -e "  2. /sr-review のあと /sr-design-detail table"
+        echo -e "  1. docs/03_詳細設計/$(uc_slug)/ユースケース.md を編集"
+        echo -e "  2. /sr-レビュー のあと /sr-詳細設計 table"
       elif [[ "$(state_get "gates.table_design_reviewed")" != "true" ]]; then
-        echo -e "  1. docs/detailed/$(uc_slug)/table.md を編集"
-        echo -e "  2. /sr-review のあと /sr-design-detail infra"
+        echo -e "  1. docs/03_詳細設計/$(uc_slug)/テーブル.md を編集"
+        echo -e "  2. /sr-レビュー のあと /sr-詳細設計 infra"
       elif [[ "$(state_get "gates.infra_design_reviewed")" != "true" ]]; then
-        echo -e "  1. docs/detailed/$(uc_slug)/infra.md を編集"
-        echo -e "  2. /sr-review のあと /sr-test-design"
+        echo -e "  1. docs/03_詳細設計/$(uc_slug)/インフラ.md を編集"
+        echo -e "  2. /sr-レビュー のあと /sr-テスト設計"
       else
-        echo -e "  /sr-test-design"
+        echo -e "  /sr-テスト設計"
       fi
       ;;
     test-design)
-      echo -e "  1. docs/test-design/$(uc_slug).md を編集し、テストコードを書く（Red）"
-      echo -e "  2. テストコードをコミット → /sr-set-gate test_code_committed"
-      echo -e "  3. /sr-review docs/test-design/$(uc_slug).md"
-      echo -e "  4. /sr-implement"
+      echo -e "  1. docs/04_テスト設計/$(uc_slug).md を編集し、テストコードを書く（Red）"
+      echo -e "  2. テストコードをコミット → /sr-ゲート設定 test_code_committed"
+      echo -e "  3. /sr-レビュー docs/04_テスト設計/$(uc_slug).md"
+      echo -e "  4. /sr-実装"
       ;;
     implement)
-      echo -e "  実装してテストを Green にしたら: /sr-complete"
+      echo -e "  実装してテストを Green にしたら: /sr-完了"
       ;;
     complete)
       echo -e "  完了。PR を作成してマージしてください。"
       ;;
     fix)
-      echo -e "  案内に従って該当ドキュメントを修正し、必要なら /sr-design-detail 等から再実行。"
+      echo -e "  案内に従って該当ドキュメントを修正し、必要なら /sr-詳細設計 等から再実行。"
       ;;
     *)
       echo -e "  ./scripts/spec-runner.sh help でコマンド一覧を確認"
@@ -998,22 +1049,22 @@ cmd_fix() {
     1)
       info "ドメインモデルから再設計します"
       info "修正ファイル:"
-      info "  docs/detailed/$(uc_slug)/domain.md → status: draft に戻す"
-      info "  docs/detailed/$(uc_slug)/usecase.md → 再確認"
-      info "  docs/test-design/$(uc_slug).md → 再確認"
+      info "  docs/03_詳細設計/$(uc_slug)/ドメイン.md → status: draft に戻す"
+      info "  docs/03_詳細設計/$(uc_slug)/ユースケース.md → 再確認"
+      info "  docs/04_テスト設計/$(uc_slug).md → 再確認"
       ;;
     2)
       info "ユースケース設計から修正します"
-      info "  docs/detailed/$(uc_slug)/usecase.md → status: draft に戻す"
-      info "  docs/test-design/$(uc_slug).md → 再確認"
+      info "  docs/03_詳細設計/$(uc_slug)/ユースケース.md → status: draft に戻す"
+      info "  docs/04_テスト設計/$(uc_slug).md → 再確認"
       ;;
     3)
       info "インフラ設計から修正します"
-      info "  docs/detailed/$(uc_slug)/infra.md → status: draft に戻す"
+      info "  docs/03_詳細設計/$(uc_slug)/インフラ.md → status: draft に戻す"
       ;;
     4)
       info "テーブル設計から修正します"
-      info "  docs/detailed/$(uc_slug)/table.md → status: draft に戻す"
+      info "  docs/03_詳細設計/$(uc_slug)/テーブル.md → status: draft に戻す"
       ;;
     5)
       info "テストを追加して実装を修正します"

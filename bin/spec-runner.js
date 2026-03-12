@@ -276,8 +276,14 @@ async function main() {
   log(chalk.bold.green('✅ spec-runner のセットアップが完了しました！'));
   log('');
   log(chalk.bold('次のステップ:'));
+  log('  • まずプロジェクトの土台を書く（init の前に行う）:');
+  log(chalk.cyan('    docs/01_憲章.md  … 不変原則・品質ルール（プロジェクト憲章）'));
+  log(chalk.cyan('    docs/02_仕様.md  … 何を作るか・なぜか・スコープ（仕様）'));
+  log('    チャットで /sr-憲章 または /sr-仕様 と入力すると編集を案内できます。');
+  log('');
   log('  • パス・TDD 等の設定と最初のユースケース開始:');
   log(chalk.cyan('       ./scripts/spec-runner.sh init "ユースケース名" "集約名"'));
+  log('    またはチャットで: ' + chalk.cyan('/sr-初期化 ユースケース名 集約名'));
   log('');
   log('  init を実行すると対話で Domain/UseCase のパスやテスト設定を聞かれます。');
   log('  引数なしで init だけ実行すると設定対話のみ行えます。');
@@ -361,10 +367,22 @@ async function deployFiles(answers) {
   log('');
   log(chalk.bold('展開するファイル:'));
 
-  // 1. 共通（base）: scripts, docs, templates, .github/workflows, .github/PULL_REQUEST_TEMPLATE
+  // 1. 共通（base）: scripts, templates（生成用＋初期ドキュメント）, .github
   copyPathFrom(baseDir, 'scripts');
-  copyPathFrom(baseDir, 'docs');
   copyPathFrom(baseDir, 'templates');
+  // templates/初期ドキュメント/ の中身を docs/ に展開（憲章・仕様・用語集等）
+  const docsInitialSrc = path.join(CWD, 'templates', '初期ドキュメント');
+  const docsDest = path.join(CWD, 'docs');
+  if (fs.existsSync(docsInitialSrc)) {
+    copyDir(docsInitialSrc, docsDest, vars);
+  }
+  // 生成用テンプレートのうち設計判断記録ひな形は docs/99_設計判断記録/ にも置く（新規 ADR 作成時のコピー元）
+  const adrTemplateSrc = path.join(CWD, 'templates', '99_設計判断記録', 'ひな形.md');
+  const adrTemplateDest = path.join(CWD, 'docs', '99_設計判断記録', 'ひな形.md');
+  if (fs.existsSync(adrTemplateSrc)) {
+    fs.mkdirSync(path.dirname(adrTemplateDest), { recursive: true });
+    if (!isDryRun) fs.copyFileSync(adrTemplateSrc, adrTemplateDest);
+  }
   copyPathFrom(baseDir, '.github/workflows');
   copyPathFrom(baseDir, '.github/PULL_REQUEST_TEMPLATE.md');
 
@@ -685,10 +703,10 @@ async function runUpdate() {
     DATE:                      new Date().toISOString().slice(0, 10),
   };
 
-  // 要件テンプレートが無ければ追加（init で必須のため）
-  const requirementTemplateDest = path.join(CWD, 'templates', 'requirement', 'template.md');
+  // 要件定義テンプレートが無ければ追加（init で必須のため）
+  const requirementTemplateDest = path.join(CWD, 'templates', '01_要件定義', 'ひな形.md');
   if (!fs.existsSync(requirementTemplateDest)) {
-    const requirementTemplateSrc = path.join(templatesDir, 'base', 'templates', 'requirement', 'template.md');
+    const requirementTemplateSrc = path.join(templatesDir, 'base', 'templates', '01_要件定義', 'ひな形.md');
     if (fs.existsSync(requirementTemplateSrc)) {
       copyFile(requirementTemplateSrc, requirementTemplateDest, vars);
     }

@@ -9,7 +9,7 @@
 
 **何かを実装する前に必ず実行せよ：**
 
-`./scripts/spec-runner.sh status`（チャットでは `/sr-status`）で現在のフェーズを確認する。
+`./scripts/spec-runner.sh status`（チャットでは `/sr-状態`）で現在のフェーズを確認する。
 
 `phase` が `implement` でない場合、実装コードを生成してはならない。
 代わりに「現在のフェーズを確認してください」と伝えてユーザーに委ねよ。
@@ -20,7 +20,7 @@
 
 **実装フェーズに進むまでに、テストを必ず含める。**
 
-1. **テスト設計** … `docs/test-design/<UC名>.md` を書く
+1. **テスト設計** … `docs/04_テスト設計/<UC名>.md` を書く
 2. **テストを先に書く（Red）** … 実装より前にテストコードを書き、失敗することを確認する
 3. **テストコードをコミット** … `./scripts/spec-runner.sh set-gate test_code_committed` でゲート通過
 4. **実装で Green** … `implement` フェーズでテストを通す実装を書く
@@ -36,7 +36,7 @@
 
 ### .claude/commands/（Claude Code カスタムスラッシュコマンド）
 
-`.claude/commands/` に Markdown を置くと、チャット欄で `/sr-*` として呼び出せる。各ファイルは「spec-runner.sh を実行せよ」という指示になっており、**ハード強制**に繋がる。コマンド一覧は **README の「スラッシュコマンド」** を参照。各 .md 内の `$ARGUMENTS` には、ユーザーがスラッシュの後に続けて入力した文字列が入る。
+`.claude/commands/` に Markdown を置くと、チャット欄で `/sr-憲章` や `/sr-状態` などのスラッシュコマンドとして呼び出せる。各ファイルは「spec-runner.sh を実行せよ」という指示になっており、**ハード強制**に繋がる。コマンド一覧は **README の「スラッシュコマンド」** を参照。各 .md 内の `$ARGUMENTS` には、ユーザーがスラッシュの後に続けて入力した文字列が入る。
 
 ### 自然言語・短いスラッシュでの依頼
 
@@ -47,46 +47,46 @@
 ## フェーズ別の行動規則
 
 ### require（要件定義）フェーズ
-- `docs/requirements/<UC名>.md` を編集する
+- `docs/01_要件/<UC名>.md` を編集する
 - 実装・設計・テーブル定義は書かない
-- 完了後: `./scripts/spec-runner.sh review-pass docs/requirements/<UC名>.md`
+- 完了後: `./scripts/spec-runner.sh review-pass docs/01_要件/<UC名>.md`
 
 ### design-high（概要設計）フェーズ
-- `docs/high-level/<UC名>.md` を編集する
+- `docs/02_概要設計/<UC名>.md` を編集する
 - ユースケース記述とドメインモデル候補の洗い出しのみ
 - **具体的なメソッド定義・テーブルカラムは書かない**
-- 新しい概念が出たら先に `docs/glossary.md` に追加する
-- 完了後: `./scripts/spec-runner.sh review-pass docs/high-level/<UC名>.md`
+- 新しい概念が出たら先に `docs/03_用語集.md` に追加する
+- 完了後: `./scripts/spec-runner.sh review-pass docs/02_概要設計/<UC名>.md`
 
 ### design-detail（詳細設計）フェーズ
 この順序で作業する：
 
-1. **domain** → `docs/detailed/<UC名>/domain.md`
+1. **domain** → `docs/03_詳細設計/<UC名>/ドメイン.md`
    - エンティティ・値オブジェクト・ドメインイベント・集約・リポジトリIF
    - 振る舞い（メソッド）の定義
    - ← レビュー通過後に次へ
 
-2. **usecase** → `docs/detailed/<UC名>/usecase.md`
+2. **usecase** → `docs/03_詳細設計/<UC名>/ユースケース.md`
    - ドメインモデルを使う設計（ドメインモデルを参照して書く）
    - Command/Query の入出力・シーケンス図
    - ← レビュー通過後に次へ
 
-3. **table** → `docs/detailed/<UC名>/table.md`
+3. **table** → `docs/03_詳細設計/<UC名>/テーブル.md`
    - ドメインモデル ≠ テーブル（用途で分けてOK）
    - ER図（Mermaid）
    - ← レビュー通過後に次へ
 
-4. **infra** → `docs/detailed/<UC名>/infra.md`
+4. **infra** → `docs/03_詳細設計/<UC名>/インフラ.md`
    - APIエンドポイント定義
    - リポジトリ実装方針
    - フロントエンドコンポーネント構成
    - ← レビュー通過後に次へ
 
 ### test-design（テスト設計）フェーズ
-- `docs/test-design/<UC名>.md` を編集する
+- `docs/04_テスト設計/<UC名>.md` を編集する
 - **TDD: テストコードを実装より先に書く（Red 状態で OK）**
 - テストコードをコミットしてから次へ: `./scripts/spec-runner.sh set-gate test_code_committed`
-- 完了後: `./scripts/spec-runner.sh review-pass docs/test-design/<UC名>.md`
+- 完了後: `./scripts/spec-runner.sh review-pass docs/04_テスト設計/<UC名>.md`
 
 ### implement（実装）フェーズ
 - **TDD: テストを Green にする実装を書く**
@@ -100,21 +100,21 @@
 
 | 変更内容 | 必ず同時更新するもの |
 |---------|-------------------|
-| `Domain/` 配下のクラス変更 | `docs/detailed/<UC名>/domain.md` |
-| `UseCase/` 配下のクラス変更 | `docs/detailed/<UC名>/usecase.md` |
-| `Infrastructure/Api/` の変更 | `docs/detailed/<UC名>/infra.md` |
-| DBマイグレーション | `docs/detailed/<UC名>/table.md` |
-| 新しいエンティティ/値オブジェクト | `docs/glossary.md` |
-| アーキテクチャ判断 | `docs/adr/<番号>-<タイトル>.md` |
+| `Domain/` 配下のクラス変更 | `docs/03_詳細設計/<UC名>/ドメイン.md` |
+| `UseCase/` 配下のクラス変更 | `docs/03_詳細設計/<UC名>/ユースケース.md` |
+| `Infrastructure/Api/` の変更 | `docs/03_詳細設計/<UC名>/インフラ.md` |
+| DBマイグレーション | `docs/03_詳細設計/<UC名>/テーブル.md` |
+| 新しいエンティティ/値オブジェクト | `docs/03_用語集.md` |
+| アーキテクチャ判断 | `docs/99_設計判断記録/<番号>-<タイトル>.md` |
 
 ---
 
 ## ユビキタス言語ルール
 
-- 設計ドキュメント → `docs/glossary.md` の **日本語** 列を使う
+- 設計ドキュメント → `docs/03_用語集.md` の **日本語** 列を使う
 - コード（クラス名・メソッド名・変数名）→ **英語** 列を使う
 - PHPDoc/JSDoc → 日本語のユビキタス言語を `@description` に併記する
-- 新しい概念が登場 → **まず `docs/glossary.md` に追加してから**設計・実装に入る
+- 新しい概念が登場 → **まず `docs/03_用語集.md` に追加してから**設計・実装に入る
 
 ---
 
