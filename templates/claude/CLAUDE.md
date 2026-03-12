@@ -92,7 +92,7 @@
 - **TDD: テストを Green にする実装を書く**
 - 設計と乖離した場合は先にドキュメントを更新する
 - コードとドキュメントを同一コミットに含める
-- 完了後: `./.spec-runner/scripts/spec-runner.sh complete`
+- 実装完了後: git push → PR。次のユースケースは `./.spec-runner/scripts/spec-runner.sh init <名前>` で開始
 
 ---
 

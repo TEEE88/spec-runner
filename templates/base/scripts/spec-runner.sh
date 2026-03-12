@@ -18,7 +18,6 @@
 #   ./.spec-runner/scripts/spec-runner.sh fix <修正内容>
 #   ./.spec-runner/scripts/spec-runner.sh hotfix <内容>
 #   ./.spec-runner/scripts/spec-runner.sh review-pass <ドキュメントパス>
-#   ./.spec-runner/scripts/spec-runner.sh complete
 # =============================================================================
 
 set -euo pipefail
@@ -245,13 +244,17 @@ cmd_init() {
   step "ユースケース初期化: $usecase"
   echo ""
 
-  # 既存のstateがあれば警告
+  # 既存のstateがあれば警告（SR_YES=1 のときは AI/CI 用に確認をスキップ）
   if [[ -f "$STATE_FILE" ]]; then
     local current
     current=$(state_get "usecase")
-    warn "作業中のユースケース '$current' があります"
-    read -r -p "上書きしますか？ [y/N] " answer
-    [[ "$answer" =~ ^[Yy]$ ]] || die "中止しました"
+    if [[ "${SR_YES:-0}" == "1" ]]; then
+      warn "作業中のユースケース '$current' を上書きします（SR_YES=1）"
+    else
+      warn "作業中のユースケース '$current' があります"
+      read -r -p "上書きしますか？ [y/N] " answer
+      [[ "$answer" =~ ^[Yy]$ ]] || die "中止しました"
+    fi
   fi
 
   # ブランチ作成
@@ -708,57 +711,8 @@ cmd_implement() {
   info " 1. テストを Green にする実装を書く"
   info " 2. 設計と乖離した場合は先にドキュメントを更新する"
   info " 3. コードとドキュメントを同一コミットに含める"
-  info " 4. 完了後: ./.spec-runner/scripts/spec-runner.sh complete"
+  info " 4. 完了したら: git push → PR 作成。次のユースケースは init <名前> で開始"
   warn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-}
-
-# ── complete ──────────────────────────────────────────────────────────────────
-cmd_complete() {
-  require_state
-
-  echo ""
-  step "【完了チェック】実装の完了条件を確認します"
-  echo ""
-
-  local errors=0
-
-  # テストが通るか確認を促す
-  warn "テストが全て通過していることを確認してください"
-  read -r -p "全テスト通過済みですか？ [y/N] " ans_test
-  [[ "$ans_test" =~ ^[Yy]$ ]] || { fail "テストを通過させてから完了してください"; ((errors++)); }
-
-  # ドキュメントと実装の乖離チェック
-  read -r -p "設計ドキュメントと実装に乖離はないですか？ [y/N] " ans_doc
-  [[ "$ans_doc" =~ ^[Yy]$ ]] || { fail "ドキュメントを更新してから完了してください"; ((errors++)); }
-
-  if [[ $errors -gt 0 ]]; then
-    echo ""
-    die "完了条件を満たしていません"
-  fi
-
-  state_set_str "phase" "complete"
-  state_push_history "実装完了"
-
-  # ブランチ情報の表示
-  local branch agg_branch usecase
-  branch=$(state_get "branch")
-  agg_branch=$(state_get "aggregate_branch")
-  usecase=$(state_get "usecase")
-
-  echo ""
-  ok "『$usecase』の実装が完了しました！"
-  echo ""
-  info "次のステップ:"
-  info "  1. git push origin $branch"
-  if [[ -f "$PROJECT_ROOT/.github/PULL_REQUEST_TEMPLATE.md" ]]; then
-    info "  2. Pull Request を作成（.github/PULL_REQUEST_TEMPLATE.md を使用）"
-  else
-    info "  2. Pull Request を作成"
-  fi
-  if [[ -n "$agg_branch" ]]; then
-    info "  3. PRマージ先: $agg_branch"
-    info "  4. 関連ユースケースがすべて揃ったら $agg_branch → main へPR"
-  fi
 }
 
 # ── review-pass ───────────────────────────────────────────────────────────────
@@ -836,13 +790,31 @@ cmd_review_pass() {
   esac
 }
 
+# 日本語ゲート名 → 内部キー（set-gate で日本語指定時に使用）
+gate_ja_to_key() {
+  case "$1" in
+    要件レビュー済み) echo "require_approved" ;;
+    用語集確認済み) echo "glossary_checked" ;;
+    概要設計レビュー済み) echo "high_level_reviewed" ;;
+    ドメインモデルレビュー済み) echo "domain_model_reviewed" ;;
+    ユースケース設計レビュー済み) echo "usecase_design_reviewed" ;;
+    テーブル設計レビュー済み) echo "table_design_reviewed" ;;
+    インフラ設計レビュー済み) echo "infra_design_reviewed" ;;
+    テスト設計レビュー済み) echo "test_design_reviewed" ;;
+    テストコードコミット済み) echo "test_code_committed" ;;
+    *) echo "$1" ;;
+  esac
+}
+
 # ── set-gate ──────────────────────────────────────────────────────────────────
 cmd_set_gate() {
   require_state
   local gate="${1:-}"
-  [[ -n "$gate" ]] || die "使い方: ./.spec-runner/scripts/spec-runner.sh set-gate <ゲート名>"
-  state_set_bool "gates.$gate" true
-  ok "ゲートフラグ設定: $gate = true"
+  [[ -n "$gate" ]] || die "使い方: ./.spec-runner/scripts/spec-runner.sh set-gate <ゲート名>  例: 用語集確認済み、テストコードコミット済み"
+  local key
+  key=$(gate_ja_to_key "$gate")
+  state_set_bool "gates.$key" true
+  ok "ゲートフラグ設定: $key = true"
 }
 
 # ── status 表示用：フェーズ・ゲートの日本語ラベル ─────────────────────────────
@@ -970,7 +942,7 @@ cmd_status() {
     require)
       echo -e "  1. ${CYAN}$req_file${NC} を編集"
       echo -e "  2. /sr-レビュー $req_file"
-      echo -e "  3. /sr-ゲート設定 glossary_checked"
+      echo -e "  3. /sr-ゲート設定 用語集確認済み"
       echo -e "  4. /sr-概要設計"
       ;;
     design-high)
@@ -997,15 +969,12 @@ cmd_status() {
       ;;
     test-design)
       echo -e "  1. docs/04_テスト設計/$(uc_slug).md を編集し、テストコードを書く（Red）"
-      echo -e "  2. テストコードをコミット → /sr-ゲート設定 test_code_committed"
+      echo -e "  2. テストコードをコミット → /sr-ゲート設定 テストコードコミット済み"
       echo -e "  3. /sr-レビュー docs/04_テスト設計/$(uc_slug).md"
       echo -e "  4. /sr-実装"
       ;;
     implement)
-      echo -e "  実装してテストを Green にしたら: /sr-完了"
-      ;;
-    complete)
-      echo -e "  完了。PR を作成してマージしてください。"
+      echo -e "  実装完了したら: git push → PR 作成。次のユースケースは /sr-初期化 <名前> で開始"
       ;;
     fix)
       echo -e "  案内に従って該当ドキュメントを修正し、必要なら /sr-詳細設計 等から再実行。"
@@ -1136,7 +1105,6 @@ main() {
     design-detail) cmd_design_detail "$@" ;;
     test-design)   cmd_test_design "$@" ;;
     implement)     cmd_implement "$@" ;;
-    complete)      cmd_complete "$@" ;;
     review-pass)   cmd_review_pass "$@" ;;
     set-gate)      cmd_set_gate "$@" ;;
     status)        cmd_status "$@" ;;
@@ -1154,11 +1122,10 @@ main() {
       echo "  design-detail <sub>            詳細設計フェーズ（sub: domain|usecase|table|infra）"
       echo "  test-design                    テスト設計フェーズに移行（ゲートチェック）"
       echo "  implement                      実装フェーズに移行（ゲートチェック）"
-      echo "  complete                       実装完了（完了チェック）"
       echo ""
       echo -e "${BOLD}レビュー:${NC}"
       echo "  review-pass <ファイル>         ドキュメントをレビュー通過にする"
-      echo "  set-gate <ゲート名>            手動でゲートフラグを立てる"
+      echo "  set-gate <ゲート名>            手動でゲートフラグを立てる（日本語可。例: 用語集確認済み）"
       echo ""
       echo -e "${BOLD}確認:${NC}"
       echo "  status                         現在の状態を表示"

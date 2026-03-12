@@ -89,9 +89,7 @@ npx spec-runner
 ⑥ 実装
    ./.spec-runner/scripts/spec-runner.sh implement
    テストを Green にする実装を書く
-
-⑦ 完了
-   ./.spec-runner/scripts/spec-runner.sh complete
+   完了したら: git push → PR 作成。次のユースケースは init <名前> で開始
 ```
 
 TDD はデフォルトで有効。実装に進むには「テスト設計ドキュメント」と「テストコードのコミット」が必須。無効にしたいときは `.spec-runner/config.sh` で `export TDD_ENABLED="false"`。
@@ -140,7 +138,7 @@ curl -sSL https://raw.githubusercontent.com/spec-runner/spec-runner/main/install
 | ④ plan（技術計画） | `design-high` → `design-detail`（domain / usecase / table / infra） |
 | ⑤ analyze（整合性） | `review-pass` と CI の phase-gate-check |
 | ⑥ tasks（タスク分割） | テスト設計・実装フェーズでのタスク単位の進め方 |
-| ⑦ implement | `implement` → `complete` |
+| ⑦ implement | 実装完了後は push → PR。次の UC は `init` で開始 |
 
 ---
 
@@ -200,7 +198,7 @@ npx spec-runner --update
 
 ## スラッシュコマンド
 
-**`/sr-状態` を実行すると、現在のフェーズと「次にやるべきこと」（次に打つコマンド）が動的に表示される。** フェーズ移行（概要設計〜実装完了）はこの案内に従えばよい。
+**`/sr-状態` を実行すると、現在のフェーズと「次にやるべきこと」（次に打つコマンド）が動的に表示される。** フェーズ移行（概要設計〜実装）はこの案内に従い、実装完了後は push → PR → 次の UC は init で開始。
 
 | コマンド | 説明 |
 |----------|------|
@@ -214,7 +212,7 @@ npx spec-runner --update
 | `/sr-修正` 内容 | 修正 |
 | `/sr-緊急修正` 内容 | 緊急修正 |
 
-概要設計・詳細設計・テスト設計・実装・完了は、`/sr-状態` の案内に表示されるので個別に指定不要。
+概要設計・詳細設計・テスト設計・実装は、`/sr-状態` の案内に表示されるので個別に指定不要。実装完了後は push → PR。次の UC は `/sr-初期化` で開始。
 
 定義: Claude `.claude/commands/` / Cursor `.cursor/commands/` / Copilot `.github/prompts/*.prompt.md`（いずれもファイル名・コマンド名は日本語）
 

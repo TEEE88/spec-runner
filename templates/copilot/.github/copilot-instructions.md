@@ -19,7 +19,7 @@
 - require → design-high → design-detail (domain → usecase → table → infra) → test-design → implement
 - 各フェーズ完了時: `./.spec-runner/scripts/spec-runner.sh review-pass <該当ファイル>`
 - ゲート: `./.spec-runner/scripts/spec-runner.sh set-gate glossary_checked` など
-- 実装完了: `./.spec-runner/scripts/spec-runner.sh complete`
+- 実装完了後: git push → PR。次のユースケースは `init <名前>` で開始
 - 修正: `./.spec-runner/scripts/spec-runner.sh fix "内容"` / `./.spec-runner/scripts/spec-runner.sh hotfix "内容"`
 
 詳細はプロジェクトの README を参照。
