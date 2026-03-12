@@ -750,7 +750,11 @@ cmd_complete() {
   echo ""
   info "次のステップ:"
   info "  1. git push origin $branch"
-  info "  2. Pull Request を作成（.github/PULL_REQUEST_TEMPLATE.md を使用）"
+  if [[ -f "$PROJECT_ROOT/.github/PULL_REQUEST_TEMPLATE.md" ]]; then
+    info "  2. Pull Request を作成（.github/PULL_REQUEST_TEMPLATE.md を使用）"
+  else
+    info "  2. Pull Request を作成"
+  fi
   if [[ -n "$agg_branch" ]]; then
     info "  3. PRマージ先: $agg_branch"
     info "  4. 関連ユースケースがすべて揃ったら $agg_branch → main へPR"

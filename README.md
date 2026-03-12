@@ -30,7 +30,7 @@ npx spec-runner
 ```
 
 対話では**どの開発環境か**だけ聞かれる（AI ツール・CI・ドキュメント言語）。  
-ここまでで、`.spec-runner/config.sh`（既定値）と `scripts/`・`docs/`・`.github/` などができる。
+ここまでで、`.spec-runner/config.sh`（既定値）と `.spec-runner/scripts`・`.spec-runner/templates`・`docs/` ができる。CI で github-actions などを選んだ場合は `.github/` もできる。
 
 ### 3.5 プロジェクトの土台を書く（推奨・init の前）
 
@@ -178,7 +178,7 @@ curl -sSL https://raw.githubusercontent.com/spec-runner/spec-runner/main/install
 │           ├── テンプレート一覧.md
 │           ├── 振り返り/負債.md
 │           └── 99_設計判断記録/.gitkeep
-├── .github/
+├── .github/             # CI で github-actions を選択した場合のみ
 │   ├── workflows/phase-gate-check.yml
 │   └── PULL_REQUEST_TEMPLATE.md
 └── docs/                # 付番済み（01_〜04_、99_）要件・概要・詳細設計・テスト設計・設計判断記録

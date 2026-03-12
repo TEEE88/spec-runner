@@ -387,8 +387,11 @@ async function deployFiles(answers) {
     fs.mkdirSync(path.dirname(adrTemplateDest), { recursive: true });
     if (!isDryRun) fs.copyFileSync(adrTemplateSrc, adrTemplateDest);
   }
-  copyPathFrom(baseDir, '.github/workflows');
-  copyPathFrom(baseDir, '.github/PULL_REQUEST_TEMPLATE.md');
+  // CI で github-actions を選んだときだけ .github のワークフロー・PR テンプレートを配置
+  if (answers.ci === 'github-actions') {
+    copyPathFrom(baseDir, '.github/workflows');
+    copyPathFrom(baseDir, '.github/PULL_REQUEST_TEMPLATE.md');
+  }
 
   // 2. Claude Code 選択時: templates/claude/ をそのままコピー
   if (tools.includes('claude')) {
