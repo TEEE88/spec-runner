@@ -94,12 +94,13 @@ async function prompt(questions) {
     const answers = {};
     for (const q of questions) {
       if (q.type === 'select') {
-        const choices = q.choices.map((c, i) => `  ${i + 1}) ${c}`).join('\n');
+        const choices = q.choices.map((c, i) => `  ${i + 1}) ${(c && c.name) != null ? c.name : c}`).join('\n');
         const answer = await new Promise(resolve => {
           rl.question(`${q.message}\n${choices}\n番号を入力: `, resolve);
         });
         const idx = parseInt(answer, 10) - 1;
-        answers[q.name] = q.choices[idx] || q.choices[0];
+        const chosen = q.choices[idx] || q.choices[0];
+        answers[q.name] = (chosen && chosen.value != null) ? chosen.value : chosen;
       } else if (q.type === 'multiselect') {
         const choiceList = q.choices.map((c, i) => `  ${i + 1}) ${c.name || c}`).join('\n');
         const answer = await new Promise(resolve => {
@@ -201,9 +202,9 @@ async function main() {
     log('');
     answers = await prompt([
       {
-        type: 'multiselect',
+        type: 'select',
         name: 'tools',
-        message: 'どの AI ツール用の設定をインストールしますか？',
+        message: 'どの AI ツール用の設定をインストールしますか？（矢印で移動・Enter で確定）',
         choices: [
           { name: 'Claude Code', value: 'claude' },
           { name: 'Cursor', value: 'cursor' },
@@ -240,7 +241,15 @@ async function main() {
     tdd: true,
   };
 
-  if (!answers.tools || answers.tools.length === 0) {
+  // Select は単一値で返るので配列に統一。name で返る場合もあるので value に正規化
+  const toolValueMap = { 'claude code': 'claude', 'cursor': 'cursor', 'github copilot': 'copilot' };
+  const raw = answers.tools;
+  const toolsArr = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+  answers.tools = toolsArr.map((t) => {
+    const s = (typeof t === 'string' ? t : '').toLowerCase();
+    return toolValueMap[s] || s || null;
+  }).filter(Boolean);
+  if (answers.tools.length === 0) {
     answers.tools = ['claude', 'cursor', 'copilot'];
   }
 
