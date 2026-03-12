@@ -1,0 +1,45 @@
+{
+  "name": "spec-runner",
+  "version": "1.0.0-alpha.1",
+  "description": "AI-driven DDD phase gate system — design-first enforcement for Claude Code, Cursor, and Copilot",
+  "license": "MIT",
+  "bin": {
+    "spec-runner": "./bin/spec-runner.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [
+    "ddd",
+    "phase-gate",
+    "ai-development",
+    "design-first",
+    "claude-code",
+    "spec-runner",
+    "laravel",
+    "rails",
+    "django",
+    "nextjs",
+    "spec-kit"
+  ],
+  "files": [
+    "bin/",
+    "templates/",
+    "install.sh",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "enquirer": "^2.3.6",
+    "ora": "^5.4.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spec-runner/spec-runner.git"
+  },
+  "homepage": "https://github.com/spec-runner/spec-runner",
+  "bugs": {
+    "url": "https://github.com/spec-runner/spec-runner/issues"
+  }
+}

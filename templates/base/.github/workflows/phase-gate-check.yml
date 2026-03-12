@@ -1,0 +1,216 @@
+name: フェーズゲートチェック
+
+on:
+  pull_request:
+    branches: [main, 'aggregate/**']
+
+jobs:
+  gate-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: jq インストール確認
+        run: jq --version
+
+      # ─── spec-runner 設定の読み込み（.spec-runner/config.sh）────────────────
+      - name: spec-runner 設定の読み込み
+        run: |
+          if [[ -f .spec-runner/config.sh ]]; then
+            set -a
+            # shellcheck source=.spec-runner/config.sh
+            source .spec-runner/config.sh
+            set +a
+            echo "DOMAIN_PATH=$DOMAIN_PATH" >> $GITHUB_ENV
+            echo "USECASE_PATH=$USECASE_PATH" >> $GITHUB_ENV
+            echo "INFRA_PATH=$INFRA_PATH" >> $GITHUB_ENV
+            echo "MIGRATION_DIR=$MIGRATION_DIR" >> $GITHUB_ENV
+            echo "SOURCE_EXTENSIONS=$SOURCE_EXTENSIONS" >> $GITHUB_ENV
+            echo "DOMAIN_FORBIDDEN_GREP_PATTERN=$DOMAIN_FORBIDDEN_GREP_PATTERN" >> $GITHUB_ENV
+          else
+            echo "DOMAIN_PATH=src/domain" >> $GITHUB_ENV
+            echo "USECASE_PATH=src/useCase" >> $GITHUB_ENV
+            echo "INFRA_PATH=src/infrastructure" >> $GITHUB_ENV
+            echo "MIGRATION_DIR=" >> $GITHUB_ENV
+            echo "SOURCE_EXTENSIONS=ts tsx js jsx" >> $GITHUB_ENV
+            echo "DOMAIN_FORBIDDEN_GREP_PATTERN=" >> $GITHUB_ENV
+          fi
+
+      # ─── 1. ブランチ命名規則チェック ───────────────────────────────────
+      - name: ブランチ命名規則チェック
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          echo "対象ブランチ: $BRANCH"
+
+          # 許可されるブランチパターン
+          if [[ "$BRANCH" =~ ^(feature/uc-|fix/|hotfix/|aggregate/) ]]; then
+            echo "✓ ブランチ命名: OK ($BRANCH)"
+          else
+            echo "✗ ブランチ命名が規約に違反しています: $BRANCH"
+            echo ""
+            echo "許可されるパターン:"
+            echo "  feature/uc-<ユースケース名>  ← 新機能"
+            echo "  fix/<ユースケース名>-<内容>  ← 通常修正"
+            echo "  hotfix/<内容>               ← 緊急修正"
+            echo "  aggregate/<集約名>           ← 集約ブランチ"
+            exit 1
+          fi
+
+      # ─── 2. ドメイン変更 → 設計ドキュメント更新チェック（config.sh のパスを使用）──
+      - name: ドメインモデル変更時の設計ドキュメント更新チェック
+        env:
+          DOMAIN_PATH: ${{ env.DOMAIN_PATH }}
+          USECASE_PATH: ${{ env.USECASE_PATH }}
+          MIGRATION_DIR: ${{ env.MIGRATION_DIR }}
+        run: |
+          ERRORS=0
+
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          echo "変更ファイル:"
+          echo "$CHANGED"
+          echo ""
+
+          # DOMAIN_PATH が変更されたら docs/detailed/*/domain.md も更新が必要
+          if [[ -n "$DOMAIN_PATH" ]]; then
+            DOMAIN_CHANGED=$(echo "$CHANGED" | grep -E "^${DOMAIN_PATH}/" || true)
+            if [[ -n "$DOMAIN_CHANGED" ]]; then
+              DETAIL_DOC_CHANGED=$(echo "$CHANGED" | grep -E 'docs/detailed/.*/domain\.md' || true)
+              if [[ -z "$DETAIL_DOC_CHANGED" ]]; then
+                echo "✗ $DOMAIN_PATH/ が変更されましたが docs/detailed/*/domain.md が更新されていません"
+                echo "$DOMAIN_CHANGED" | sed 's/^/    /'
+                ERRORS=$((ERRORS + 1))
+              else
+                echo "✓ $DOMAIN_PATH/ 変更 → domain.md 更新確認"
+              fi
+            fi
+          fi
+
+          # USECASE_PATH が変更されたら docs/detailed/*/usecase.md も更新が必要
+          if [[ -n "$USECASE_PATH" ]]; then
+            USECASE_CHANGED=$(echo "$CHANGED" | grep -E "^${USECASE_PATH}/" || true)
+            if [[ -n "$USECASE_CHANGED" ]]; then
+              USECASE_DOC_CHANGED=$(echo "$CHANGED" | grep -E 'docs/detailed/.*/usecase\.md' || true)
+              if [[ -z "$USECASE_DOC_CHANGED" ]]; then
+                echo "✗ $USECASE_PATH/ が変更されましたが docs/detailed/*/usecase.md が更新されていません"
+                ERRORS=$((ERRORS + 1))
+              else
+                echo "✓ $USECASE_PATH/ 変更 → usecase.md 更新確認"
+              fi
+            fi
+          fi
+
+          # MIGRATION_DIR が変更されたら docs/detailed/*/table.md も更新が必要
+          if [[ -n "$MIGRATION_DIR" ]]; then
+            MIGRATION_CHANGED=$(echo "$CHANGED" | grep -E "^${MIGRATION_DIR}/" || true)
+            if [[ -n "$MIGRATION_CHANGED" ]]; then
+              TABLE_DOC_CHANGED=$(echo "$CHANGED" | grep -E 'docs/detailed/.*/table\.md' || true)
+              if [[ -z "$TABLE_DOC_CHANGED" ]]; then
+                echo "✗ $MIGRATION_DIR/ が変更されましたが docs/detailed/*/table.md が更新されていません"
+                ERRORS=$((ERRORS + 1))
+              else
+                echo "✓ $MIGRATION_DIR/ 変更 → table.md 更新確認"
+              fi
+            fi
+          fi
+
+          if [[ $ERRORS -gt 0 ]]; then
+            echo ""
+            echo "ドキュメントの更新が必要です。コードと設計ドキュメントを同一PRに含めてください。"
+            exit 1
+          fi
+
+          echo ""
+          echo "✓ ドキュメント鮮度チェック: OK"
+
+      # ─── 3. hotfix の負債チェック ──────────────────────────────────────
+      - name: hotfix PRの負債記録チェック
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          if [[ "$BRANCH" =~ ^hotfix/ ]]; then
+            if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q 'docs/review/debt.md'; then
+              echo "✓ hotfix: debt.md への記録確認"
+            else
+              echo "✗ hotfix PR では docs/review/debt.md への負債記録が必要です"
+              echo "  ./scripts/spec-runner.sh hotfix を使用してください"
+              exit 1
+            fi
+          fi
+
+      # ─── 4. DDD 依存方向チェック（config.sh の DOMAIN_PATH / DOMAIN_FORBIDDEN_GREP_PATTERN）──
+      - name: DDD レイヤー依存方向チェック
+        env:
+          DOMAIN_PATH: ${{ env.DOMAIN_PATH }}
+          SOURCE_EXTENSIONS: ${{ env.SOURCE_EXTENSIONS }}
+          DOMAIN_FORBIDDEN_GREP_PATTERN: ${{ env.DOMAIN_FORBIDDEN_GREP_PATTERN }}
+        run: |
+          ERRORS=0
+
+          if [[ -z "$DOMAIN_PATH" || ! -d "$DOMAIN_PATH" ]]; then
+            echo "✓ DDD依存方向: スキップ（DOMAIN_PATH 未設定またはディレクトリなし）"
+            exit 0
+          fi
+
+          if [[ -z "$DOMAIN_FORBIDDEN_GREP_PATTERN" ]]; then
+            echo "✓ DDD依存方向: スキップ（DOMAIN_FORBIDDEN_GREP_PATTERN 未設定。.spec-runner/config.sh で設定可能）"
+            exit 0
+          fi
+
+          # ソース拡張子で find して、禁止パターンに一致するファイルを検出
+          EXT_REGEX=".*\\.($(echo "$SOURCE_EXTENSIONS" | tr ' ' '|'))$"
+          VIOLATIONS=$(find "$DOMAIN_PATH" -type f -regextype posix-extended -regex "$EXT_REGEX" 2>/dev/null | xargs grep -l "$DOMAIN_FORBIDDEN_GREP_PATTERN" 2>/dev/null || true)
+          if [[ -n "$VIOLATIONS" ]]; then
+            echo "✗ Domain層が上位層に依存しています（DDD違反）"
+            echo "$VIOLATIONS" | sed 's/^/  /'
+            ERRORS=$((ERRORS + 1))
+          else
+            echo "✓ DDD依存方向: OK"
+          fi
+
+          [[ $ERRORS -eq 0 ]] || exit 1
+
+      # ─── 5. ADR の対応コードリンクチェック ────────────────────────────
+      - name: ADR 対応コードリンクチェック
+        run: |
+          WARNINGS=0
+          if [[ -d "docs/adr" ]]; then
+            for adr in docs/adr/[0-9]*.md; do
+              [[ -f "$adr" ]] || continue
+              # 「## 対応コード」セクションからファイルパスを抽出
+              code_refs=$(awk '/^## 対応コード/{found=1; next} /^## /{found=0} found && /`.*\.(php|ts|tsx)`/{print}' "$adr" | grep -oP '`[^`]+`' | tr -d '`' || true)
+              while IFS= read -r ref; do
+                [[ -z "$ref" ]] && continue
+                if [[ ! -f "$ref" ]]; then
+                  echo "⚠ ADR $(basename $adr): 参照ファイルが存在しません → $ref"
+                  WARNINGS=$((WARNINGS + 1))
+                fi
+              done <<< "$code_refs"
+            done
+          fi
+
+          if [[ $WARNINGS -gt 0 ]]; then
+            echo ""
+            echo "ADRの対応コードリンクを更新してください（警告: ブロックしません）"
+          else
+            echo "✓ ADR対応コードリンク: OK"
+          fi
+
+      # ─── 6. glossary.md の新エンティティチェック（config.sh の DOMAIN_PATH / SOURCE_EXTENSIONS）──
+      - name: 新規Domain classのglossary.md登録チェック
+        env:
+          DOMAIN_PATH: ${{ env.DOMAIN_PATH }}
+          SOURCE_EXTENSIONS: ${{ env.SOURCE_EXTENSIONS }}
+        run: |
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          EXT_PATTERN=$(echo "$SOURCE_EXTENSIONS" | tr ' ' '|')
+          NEW_DOMAIN=$(echo "$CHANGED" | grep -E "^${DOMAIN_PATH}/.*\.(${EXT_PATTERN})$" | xargs git diff --diff-filter=A --name-only origin/${{ github.base_ref }}...HEAD 2>/dev/null || true)
+
+          if [[ -n "$NEW_DOMAIN" && -n "$DOMAIN_PATH" ]]; then
+            if echo "$CHANGED" | grep -q 'docs/glossary.md'; then
+              echo "✓ 新規Domainクラス追加 → glossary.md 更新確認"
+            else
+              echo "⚠ 新規Domainクラスが追加されましたが glossary.md が更新されていません"
+              echo "  新しいエンティティ/値オブジェクトにはユビキタス言語の追加が必要です"
+            fi
+          fi
