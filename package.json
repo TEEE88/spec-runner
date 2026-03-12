@@ -1,6 +1,6 @@
 {
   "name": "spec-runner",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "AI-driven DDD phase gate system — design-first enforcement for Claude Code, Cursor, and Copilot",
   "license": "MIT",
   "bin": {

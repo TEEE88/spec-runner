@@ -31,6 +31,8 @@ try {
 
 // ── 定数 ──────────────────────────────────────────────────────────────────────
 const PKG_DIR    = path.resolve(__dirname, '..');
+const PKG_JSON   = (() => { try { return require(path.join(PKG_DIR, 'package.json')); } catch { return {}; } })();
+const VERSION    = PKG_JSON.version || '?.?.?';
 const CWD        = process.cwd();
 const CONFIG_DIR = path.join(CWD, '.spec-runner');
 const CONFIG_SH  = path.join(CONFIG_DIR, 'config.sh');
@@ -152,7 +154,8 @@ const DEFAULT_STRUCTURE = {
 async function main() {
   log('');
   log(chalk.bold('╔════════════════════════════════════════╗'));
-  log(chalk.bold('║     spec-runner  v1.0.0-alpha           ║'));
+  const verPad = Math.max(0, 17 - String(VERSION).length);
+  log(chalk.bold(`║     spec-runner  v${VERSION}${' '.repeat(verPad)}║`));
   log(chalk.bold('║  AI-driven DDD Phase Gate System       ║'));
   log(chalk.bold('╚════════════════════════════════════════╝'));
   log('');
