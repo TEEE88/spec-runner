@@ -1,2 +1,7 @@
 .DS_Store
 node_modules/
+
+# このリポジトリで npx spec-runner を試したときにできる作業用コピー
+.spec-runner/
+.claude/
+.cursor/

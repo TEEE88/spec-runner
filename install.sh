@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
-# =============================================================================
-# spec-runner インストーラー (curl 方式)
+# spec-runner 用インストーラ（curl 用）
 #
 # 使い方:
-#   curl -sSL https://raw.githubusercontent.com/spec-runner/spec-runner/main/install.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/TEEE88/spec-runner/main/install.sh | bash
 #
 # または wget:
-#   wget -qO- https://raw.githubusercontent.com/spec-runner/spec-runner/main/install.sh | bash
-# =============================================================================
+#   wget -qO- https://raw.githubusercontent.com/TEEE88/spec-runner/main/install.sh | bash
 
 set -e
 
@@ -25,12 +23,11 @@ die()  { echo -e "${RED}ERROR:${NC} $*" >&2; exit 1; }
 
 echo ""
 echo -e "${BOLD}╔════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}║       spec-runner  インストーラー        ║${NC}"
-echo -e "${BOLD}║  AI-driven DDD Phase Gate System       ║${NC}"
+echo -e "${BOLD}║       spec-runner インストーラ        ║${NC}"
+echo -e "${BOLD}║     フェーズ駆動 / 次のステップ方式     ║${NC}"
 echo -e "${BOLD}╚════════════════════════════════════════╝${NC}"
 echo ""
 
-# ── Node.js チェック ──────────────────────────────────────────────────────────
 if command -v node &>/dev/null; then
   NODE_VERSION=$(node --version | sed 's/v//')
   NODE_MAJOR=$(echo "$NODE_VERSION" | cut -d. -f1)
@@ -42,7 +39,6 @@ else
   die "Node.js がインストールされていません。\n  https://nodejs.org からインストールしてください"
 fi
 
-# ── jq チェック ───────────────────────────────────────────────────────────────
 if command -v jq &>/dev/null; then
   ok "jq $(jq --version)"
 else
@@ -56,10 +52,9 @@ else
   else
     die "jq を手動でインストールしてください: https://stedolan.github.io/jq/download/"
   fi
-  ok "jq インストール完了"
+  ok "jq インストール済み"
 fi
 
-# ── git チェック ──────────────────────────────────────────────────────────────
 if command -v git &>/dev/null; then
   ok "git $(git --version | awk '{print $3}')"
 else
@@ -70,7 +65,6 @@ echo ""
 info "npx spec-runner を実行します..."
 echo ""
 
-# ── npm/npx で実行 ────────────────────────────────────────────────────────────
 if command -v npx &>/dev/null; then
   npx spec-runner@latest
 elif command -v npm &>/dev/null; then

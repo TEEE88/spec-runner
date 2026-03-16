@@ -1,7 +1,7 @@
 {
   "name": "spec-runner",
-  "version": "1.0.6",
-  "description": "AI-driven DDD phase gate system — design-first enforcement for Claude Code, Cursor, and Copilot",
+  "version": "1.0.7",
+  "description": "フェーズ駆動で設計先行を強制。npx で .spec-runner を展開し、次のステップ .md に従って進める",
   "license": "MIT",
   "bin": {
     "spec-runner": "bin/spec-runner.js"
@@ -22,6 +22,7 @@
     "nextjs",
     "spec-kit"
   ],
+  "scripts": {},
   "files": [
     "bin/",
     "templates/",
