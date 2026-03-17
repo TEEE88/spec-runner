@@ -169,9 +169,9 @@ function main() {
       locked_at: null,
       reviewed_by: null,
       documents: [
-        "docs/02_ドメイン設計/ユビキタス言語辞書.md",
-        "docs/02_ドメイン設計/ドメインモデル.md",
-        "docs/02_ドメイン設計/集約.md",
+        "docs/03_ドメイン設計/ユビキタス言語辞書.md",
+        "docs/03_ドメイン設計/ドメインモデル.md",
+        "docs/03_ドメイン設計/集約.md",
       ],
     },
     architecture: {
@@ -181,9 +181,9 @@ function main() {
       locked_at: null,
       reviewed_by: null,
       documents: [
-        "docs/03_アーキテクチャ/パターン選定.md",
-        "docs/03_アーキテクチャ/インフラ方針.md",
-        "docs/03_アーキテクチャ/設計判断記録",
+        "docs/04_アーキテクチャ/パターン選定.md",
+        "docs/04_アーキテクチャ/インフラ方針.md",
+        "docs/04_アーキテクチャ/設計判断記録",
       ],
     },
     infra: {

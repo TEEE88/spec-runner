@@ -1,0 +1,33 @@
+#!/bin/bash
+# spec-runner pre-commit: ブランチ名チェック + 命名規則チェック（Section 8-4）
+
+set -e
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+[[ -n "$REPO_ROOT" ]] || exit 0
+
+branch=$(git branch --show-current)
+bp="feature"
+other_work="work/.+|infra/.+|cicd/.+"
+if [[ -f "$REPO_ROOT/.spec-runner/project.json" ]] && command -v jq >/dev/null 2>&1; then
+  p=$(jq -r '.naming.branch_prefix // empty' "$REPO_ROOT/.spec-runner/project.json" 2>/dev/null); [[ -n "$p" ]] && bp="$p"
+  ow=$(jq -r '.naming.other_work_prefixes[]? | . + "/.+"' "$REPO_ROOT/.spec-runner/project.json" 2>/dev/null | tr '\n' '|' | sed 's/|$//'); [[ -n "$ow" ]] && other_work="$ow"
+fi
+valid_pattern="^(main|develop|${bp}/(UC-[0-9]{3}-.+|${other_work})|fix/UC-[0-9]{3}-.+|release/[0-9]+\.[0-9]+\.[0-9]+.*|hotfix/[0-9]+\.[0-9]+\.[0-9]+-.+)$"
+
+if ! echo "$branch" | grep -qE "$valid_pattern"; then
+  echo "❌ ブランチ名が規則違反: $branch"
+  echo "   正しい形式:"
+  echo "     ${bp}/UC-{NNN}-{kebab-description}   （新規UC、接頭辞は project.json の branch_prefix）"
+  echo "     ${bp}/cicd/xxx  ${bp}/infra/xxx      （その他作業、project.json の other_work_prefixes）"
+  echo "     fix/UC-{NNN}-{kebab-description}        （修正）"
+  echo "     release/{semver}                        （リリース）"
+  echo "     hotfix/{semver}-{kebab-description}     （緊急修正）"
+  exit 1
+fi
+
+# 命名規則チェック（.spec-runner スクリプトがある場合のみ実行）
+if [[ -x "$REPO_ROOT/.spec-runner/scripts/check/naming.sh" ]]; then
+  "$REPO_ROOT/.spec-runner/scripts/check/naming.sh" || exit 1
+fi
+
+exit 0
