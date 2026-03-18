@@ -1,6 +1,6 @@
 {
   "name": "spec-runner",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "フェーズ駆動で設計先行を強制。npx で .spec-runner を展開し、次のステップ .md に従って進める",
   "license": "MIT",
   "bin": {
@@ -30,11 +30,6 @@
     "README.md",
     "LICENSE"
   ],
-  "dependencies": {
-    "chalk": "^4.1.2",
-    "enquirer": "^2.3.6",
-    "ora": "^5.4.1"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/TEEE88/spec-runner.git"

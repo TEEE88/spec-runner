@@ -1,152 +1,196 @@
-# spec-runner の進め方（全体像）
+# spec-runner の進め方（実装準拠）
 
-spec-runner は「いま何を作るべきか」を **`.spec-runner/spec-runner.sh 次のステップ --json`** で 1 つだけ返し、そのステップ（`.spec-runner/steps/*.md`）に従って設計→実装までを進める仕組みです。
-
-このドキュメントは、**超具体の書き方ではなく**「どんな成果物を、どんな順で、どんな判断で作っていくか」を俯瞰します。
-
----
-
-## まずやること（毎回共通）
-
-- **入口コマンド**: プロジェクトルートで `./.spec-runner/spec-runner.sh 次のステップ --json`
-- **やること**: 出力 `command_file`（`.spec-runner/steps/*.md`）を開き、その指示どおりに作業する
-- **次へ**: 作業が終わったら同じコマンドをもう一度実行し、次のステップに進む
+このドキュメントは **リポジトリ内の実装**（`templates/.spec-runner/scripts/spec-runner-core.sh`、`steps/steps.json` 等）に沿って書いています。  
+「次のステップ」は **1 本のコマンド**が返す **1 つの `command_file`（`.spec-runner/steps/*.md`）** だけです。
 
 ---
 
-## 管理される “状態” と “判断材料”
+## 入口コマンド（毎回）
 
-- **フェーズの通過状態**: `.spec-runner/phase-locks.json`
-  - 例: `charter.completed`, `domain.completed`, `architecture.completed` など
-  - **レビュー“通過”の管理**はドキュメント本文に `status: reviewed` を書かず、**lock ファイルが単一ソース**になります（例: `charter.reviewed_by`, `domain.completed`, `uc_reviewed`）
-- **グレード**: `.spec-runner/grade-history.json`（`LOOP1 / A / B / C`）
-  - インフラ設計が必要な案件（Grade A）などで分岐します
-- **ブランチ**: UC 作業は基本 `feature/UC-NNN-xxx`（接頭辞は `project.json` で変更可）
+| 用途 | コマンド（プロジェクトルート） |
+|------|-------------------------------|
+| 次のステップ（人間向けテキスト） | `./.spec-runner/spec-runner.sh` または `./.spec-runner/spec-runner.sh 次のステップ` |
+| 次のステップ（JSON） | `./.spec-runner/spec-runner.sh 次のステップ --json` |
+| Lock 一覧 | `./.spec-runner/spec-runner.sh 次のステップ --lock`（内部では `--status`） |
+| グレード判定ガイド | `./.spec-runner/spec-runner.sh 次のステップ --グレード` |
 
----
+- **やること**: 出力の `command_file` を開き、その `.md` の指示どおりに作業する。
+- **毎回の検証**: `steps.json` の `common.commands.check` → 既定は `.spec-runner/scripts/check.sh`。
 
-## 成果物の置き場所（基本ルール）
+### `--json` の主なフィールド（実装どおり）
 
-- **設計書は `docs/` 配下に集約**（プロジェクトルート直下）。**`docs/01..06`** とは次の 6 フォルダの総称です。
-
-| 番号 | フォルダ名 | 内容 |
-|------|------------|------|
-| **01** | `docs/01_憲章/` | プロジェクト憲章（`憲章.md`）。原則・スコープ・非交渉事項・技術方針。Phase 0。 |
-| **02** | `docs/02_ユースケース仕様/` | UC 仕様書（`<カテゴリ>/UC-NNN-xxx.md`）。1 UC = 1 ファイル。ユースケースからドメインを引き出すため最初に作る。 |
-| **03** | `docs/03_ドメイン設計/` | ユビキタス言語辞書・ドメインモデル・集約など。UC を踏まえて固める。 |
-| **04** | `docs/04_アーキテクチャ/` | パターン選定・インフラ方針・命名規則・設計判断記録（ADR）。Phase 2。 |
-| **05** | `docs/05_インフラ設計/` | インフラ詳細（例: `schema.dbml`）。Grade A 時。Phase 4。 |
-| **06** | `docs/06_API仕様/` | API の単一ソース（`openapi.yaml`）。API 公開時のみ。 |
-
-- **注意**: 憲章の次は **UC（02）→ ドメイン（03）→ アーキ（04）** の順で進めます。
-- **ユースケース（UC）仕様書は 1 UC = 1 ファイル**
-  - `docs/02_ユースケース仕様/<カテゴリ>/UC-NNN-xxx.md`
-  - 「実装方針」「タスク」も **UC 仕様書の末尾**に集約します
-- **テストは `project.json` の `test_design.dir`（既定 `tests`）へ**
-- **アプリケーションコードは `src/` 配下**（`docs/` と分離）
+| フィールド | 意味 |
+|------------|------|
+| `phase` | 数値（`steps.json` の各 step の `phase` と概ね対応） |
+| `phase_name_ja` | 表示用ラベル（コアが付与） |
+| `step_id` | `steps.json` の `id`（例: `charter`, `uc_spec`, `clarify`） |
+| `command` | ステップの日本語名（`name_ja`） |
+| `command_file` | 絶対パス想定の `.spec-runner/steps/<md_file>` |
+| `grade` | `grade-history.json` の `current_grade` |
+| `check_command` | 毎回のチェック用シェルコマンド |
+| `step_commands` | そのステップ用のコマンド配列（JSON） |
+| `feature_dir` / `feature_spec` | UC ブランチ時、該当 UC のディレクトリ・仕様書パス（取れれば） |
 
 ---
 
-## 出来上がるフォルダ構造（一例）
+## 状態の単一ソース
 
-フローに沿って進めた場合の、プロジェクトルート直下の想定構造です。
+### `.spec-runner/phase-locks.json`
+
+実際のキーは次のとおり（各オブジェクトに `completed`, `locked_at`, `reviewed_by` 等）。
+
+| キー | 意味 |
+|------|------|
+| `charter` | 憲章フェーズ完了。ゲートでは `reviewed_by` も参照（LOOP1 時） |
+| `domain` | ドメイン設計フェーズ完了 |
+| `architecture` | アーキ（実装計画）フェーズ完了 |
+| `infra` | インフラ詳細（Grade A）完了 |
+| `test_design` | テスト設計ロック（ゲート側で参照） |
+| `uc_reviewed` | **文字列の配列**。UC 仕様ファイルの **ベース名（拡張子なし）** が入ると「レビュー通過」とみなす（例: `UC-1-foo`） |
+
+### `.spec-runner/grade-history.json`
+
+- `current_grade`: `LOOP1` / `A` / `B` / `C` など（**ブランチ名には含めない**）
+- Grade A のとき、UC レビュー通過後は **インフラ詳細（`infra_plan`）** が先に出る（`infra.completed` が付くまで）
+
+### `.spec-runner/project.json`
+
+- `naming`: ブランチ接頭辞 `branch_prefix`（既定 `feature`）、`uc_id_pattern`、`other_work_prefixes`（例: `work`, `infra`, `cicd`）
+- `required_docs`: ゲート確認時の必須パス（`steps:charter` 形式で `steps.json` の `common.docs` を参照）
+- `test_design.dir` / `test_design.pattern`（既定: `tests`, `*.spec.*`）
+- `test_design.require_uc_prefixed_tests`（既定: キー省略時 **true**）: **TDD 前提**。UC ブランチでは **`UC-N-` で始まり `pattern` に合致するテストファイル**が `test_design.dir` 内に無い限り **`test_design` のまま**（`implement` に進めない）。`false` にすると従来どおり「任意の spec が1つでもあれば実装」。
+- `test_command.run`: **`require-tests-green.sh` が実行するテストコマンド**（実装完了の機械的条件）
+
+---
+
+## 「次のステップ」の分岐（`spec-runner-core.sh` の実際）
+
+ブランチ種別・ロック・UC 有無・`uc_reviewed`・グレード・テストファイル有無で決まります。**紙の上の「常に UC→ドメイン→アーキ」の直線とは一致しません。**
+
+### 1) UC ブランチ上（`feature/<UC-N>-<slug>` 形式）
+
+1. 該当 `UC-N-*.md` が **まだ無い** → **`uc_spec`**（仕様策定）
+2. 仕様はあるが **`uc_reviewed` にベース名が無い** → **`clarify`**（曖昧さ解消・レビュー通過まで）
+3. レビュー済みかつ **Grade A かつ `infra.completed` でない** → **`infra_plan`**
+4. それ以外で **当該 UC 用テストが未準備**（`require_uc_prefixed_tests` が true のときは **`UC-N-*.spec.*` 形式が1つ以上**）→ **`test_design`**
+5. 上記を満たす → **`implement`**（あわせて **テストがグリーン**になるまで完了とみなさないのは `require-tests-green.sh` 側）
+
+※ **ドメイン・アーキのロック未完了でも**、上記 UC ブランチ上では 3〜5 に進めます（コア実装どおり）。
+
+### 2) UC ブランチではない（main 等）
+
+実装では **次の順で最初に当てはまる分岐**が選ばれます（UC ブランチでも `other_work` ブランチでもない場合）。
+
+1. **`charter.completed` でない** → **`charter`**
+2. **ドメイン未ロックかつ `docs/02_...` に UC が 1 件以上** → **`domain`**
+3. **ドメイン済みかつアーキ未ロック** → **`architecture_plan`**（`実装計画.md`）
+4. **`other_work` 用ブランチ**（`feature/<other_work_prefix>/...`）かつ **2・3 を通過済み**（ドメイン完了＋アーキ完了、または UC 0 件で 2 をスキップした状態など）→ **`other_work`**  
+   ※ **2** と同条件（UC あり・ドメイン未ロック）のときは **2 の `domain` が先**（`other_work` ブランチ上でも同様）。
+5. **ドメイン未ロック**（この時点では UC が 0 件）→ **`uc_spec`**
+6. **ドメイン・アーキともロック済み** → **`uc_spec`**（次の UC 開始）
+
+要点:
+
+- **初回**: main で UC がまだ無いと **5** で **`uc_spec`**。
+- **UC がリポジトリに既にあるのにドメイン未ロック**（main で作業）→ **2** で **`domain`** が **`uc_spec` より先**。
+- **アーキ**は **ドメイン完了後**に **3** で出る。
+
+### 3) 自動では選ばれないステップ（`steps.json` にのみ存在）
+
+次の `id` は **コアの `run_phase` では返しません**。各 `.md`（仕様策定・テスト設計等）の **手順の中で**使う想定です。
+
+- `analyze`（分析）
+- `checklist`（チェックリスト）
+- `task_list`（タスク一覧）
+
+---
+
+## 成果物の置き場所（`steps.json` の `common.docs` と一致）
+
+| キー | パス（既定） |
+|------|----------------|
+| 憲章 | `docs/01_憲章/憲章.md` |
+| UC ルート | `docs/02_ユースケース仕様/<カテゴリ>/UC-N-<slug>.md` |
+| ドメイン | `docs/03_ドメイン設計/`（ユビキタス言語辞書・ドメインモデル・集約 等） |
+| アーキ | `docs/04_アーキテクチャ/` |
+| インフラ | `docs/05_インフラ設計/`（例: `schema.dbml`） |
+| API | `docs/06_API仕様/openapi.yaml` |
+
+- UC ファイル名は **`UC-<N>-<slug>.md`**（`slug` は英数字・ハイフンが無難。ブランチ名も ASCII）。
+- カテゴリフォルダ名は日本語可。
+
+---
+
+## ディレクトリ構成（パッケージテンプレに近い形）
 
 ```
 <プロジェクトルート>/
-├── .spec-runner/                    # npx spec-runner で導入
-│   ├── spec-runner.sh               # 入口（次のステップ --json）
-│   ├── project.json                 # 設定（ブランチ命名・必須ドキュメント・テストコマンド等）
-│   ├── phase-locks.json             # フェーズの通過状態
-│   ├── grade-history.json           # グレード（LOOP1 / A / B / C）
-│   ├── scripts/                     # spec-runner-core.sh, check, branch, test 等
-│   ├── steps/                       # 憲章・ドメイン設計・仕様策定・曖昧さ解消・テスト設計・実装 等の .md
-│   └── templates/                   # UC 仕様書ひな形（UC-NNN-ユースケース名.md）
-├── docs/
-│   ├── 01_憲章/
-│   │   └── 憲章.md
-│   ├── 02_ユースケース仕様/
-│   │   └── <カテゴリ>/              # 例: 認証/, タスク管理/
-│   │       ├── UC-NNN-xxx.md        # 例: UC-001-order-placement.md
-│   │       └── ADR/                 # UC ごとの設計判断記録（任意）
-│   │           └── UC-NNN-xxx/       # 例: UC-001-order-placement/
-│   │               └── MMDD-題名.md  # 例: 0317-要件解釈の決定.md
-│   ├── 03_ドメイン設計/
-│   │   ├── ユビキタス言語辞書.md
-│   │   ├── ドメインモデル.md
-│   │   └── 集約.md
-│   ├── 04_アーキテクチャ/
-│   │   ├── パターン選定.md
-│   │   ├── インフラ方針.md
-│   │   ├── 命名規則.md              # 任意
-│   │   └── 設計判断記録/            # ADR（MMDD-題名.md）
-│   ├── 05_インフラ設計/             # Grade A の場合
-│   │   └── schema.dbml             # 等
-│   └── 06_API仕様/                  # API 公開時
-│       └── openapi.yaml
-├── tests/                           # project.json の test_design.dir（既定）
-│   ├── unit/
-│   │   └── UC-NNN-xxx.spec.*
-│   └── e2e/
-│       └── UC-NNN-xxx.e2e.spec.*
-├── src/                             # アプリケーションコード（domain / app / infrastructure 等）
-└── .claude/ or .cursor/             # コマンド定義（npx spec-runner で配置）
+├── .spec-runner/
+│   ├── spec-runner.sh
+│   ├── project.json              # 初回は project.json.example から
+│   ├── phase-locks.json          # 初回は templates/phase-locks.json から
+│   ├── grade-history.json
+│   ├── scripts/
+│   │   ├── spec-runner-core.sh
+│   │   ├── check.sh              # --every / --full
+│   │   ├── branch/uc-next-start.sh
+│   │   └── test/require-tests-green.sh
+│   ├── steps/                    # *.md + steps.json
+│   ├── templates/                # 憲章・UC・ドメイン雛形等
+│   └── hooks/                    # pre-commit / pre-push（任意）
+├── docs/01_憲章/ … 06_API仕様/
+├── tests/                        # project.json の test_design.dir
+└── src/
 ```
 
-- カテゴリ名は日本語可（例: `認証`、`タスク管理`）。
-- UC に閉じた判断理由は `docs/02_ユースケース仕様/<カテゴリ>/ADR/UC-NNN-xxx/` に ADR として残せる（任意）。横断の判断は `docs/04_アーキテクチャ/設計判断記録/`。
-- `docs/05_インフラ設計/` と `docs/06_API仕様/` は、グレードや API 方針に応じて省略可。
+- **`npx spec-runner`**: `.spec-runner/` を展開し、**`.claude/commands/spec-runner.md` を配置**（テンプレに存在する場合）。`.cursor/` への自動配置は **インストーラでは行っていない**。
 
 ---
 
-## フェーズ概要（何を作るか）
+## フェーズ番号とステップ（`steps.json`）
 
-### Phase 0: 憲章（Charter）
+| phase | step_id（代表） | 内容 |
+|-------|-----------------|------|
+| 0 | `charter` | 憲章 |
+| 1 | `uc_spec` / `clarify` / `other_work` | UC 仕様・曖昧さ解消・その他ブランチ |
+| 2 | `domain` | ドメイン設計 |
+| 3 | `architecture_plan` | 実装計画（アーキ） |
+| 4 | `infra_plan` | インフラ詳細（Grade A） |
+| 5 | `test_design` | PENDING テスト |
+| 6 | `implement` | 実装・テストグリーン |
 
-- **作るもの**: `docs/01_憲章/憲章.md`
-- **狙い**: 原則・スコープ・非交渉事項・技術方針などを、後続の設計判断の “根拠” にする
-- **通過**: 人間レビュー後に `phase-locks.json` 側で完了管理
+### 実装完了（Phase 6）の機械的条件
 
-### Phase 1: ユースケース仕様（UC）
+- **手動または CI で** `.spec-runner/scripts/test/require-tests-green.sh` が **exit 0** であること。
+- 中身は `project.json` の **`test_command.run`** のみを `eval` 実行（例: `npm test`）。
 
-- **作るもの**: `docs/02_ユースケース仕様/`
-  - 例: `<カテゴリ>/UC-NNN-xxx.md`
-- **狙い**: シナリオ（受入条件・フロー・例外）を先に書き、後続のドメイン設計の入力にする
+### ゲート（`spec-runner-core.sh --gate`）のメモ
 
-### Phase 2: ドメイン設計（Domain）
-
-- **作るもの**: `docs/03_ドメイン設計/`
-  - 例: `ユビキタス言語辞書.md`, `ドメインモデル.md`, `集約.md`
-- **狙い**: UC から用語・境界・集約を抽出して固め、共通の土台を作る
-- **通過**: 人間レビュー後に lock を更新
-
-### Phase 3: アーキテクチャ（Architecture）
-
-- **作るもの**: `docs/04_アーキテクチャ/`
-  - 例: `パターン選定.md`, `インフラ方針.md`, `設計判断記録/`（ADR）
-- **狙い**: 実装に入る前に、重要な技術選択と判断基準を固定する
-- **補足**: API を公開する場合は `docs/06_API仕様/openapi.yaml` を単一ソースとして扱う流れがあります
-
-### Phase 4: インフラ詳細設計（Infrastructure, Grade A の場合）
-
-- **作るもの**: `docs/05_インフラ設計/`（例: `schema.dbml` など）
-- **狙い**: 変更が大きい案件で、DB/クラウド/ネットワーク等を実装前に確定する
-
-### Phase 5: テスト設計（Test Design）
-
-- **作るもの**: PENDING（未実装前提）のテストコード
-  - 例: `tests/unit/UC-NNN-xxx.spec.*`, `tests/e2e/UC-NNN-xxx.e2e.spec.*`
-- **狙い**: “完了の定義” を先に固定し、実装フェーズでグリーンにする
-
-### Phase 6: 実装（Implementation）
-
-- **やること**: Phase 5 の PENDING テストをグリーンにし、起動確認まで通す
-- **必須**: `.spec-runner/scripts/test/require-tests-green.sh` が成功（exit 0）すること
+ゲートログ上の「Phase 1/2」表現は **ドメイン=Phase 1、アーキ=Phase 2** のように **steps.json の phase 番号と一致しません**。ロック対象は `phase-locks.json` のキーで判断してください。
 
 ---
 
-## 日本語ドキュメント運用について
+## TDD が「どこまで」強制されるか
 
-- `docs/` 配下の設計書（憲章・ドメイン・アーキテクチャ・UC 仕様など）は **日本語で問題ありません**
-- ただし Git の都合で **ブランチ名や UC 仕様ファイル名は ASCII（kebab-case）** を基本にします
-  - 日本語しか入力できない場合でも、ブランチ作成スクリプトがフォールバックして作成できるようになっています
+| レベル | 内容 |
+|--------|------|
+| **ゲート（次のステップ）** | 上記どおり **先に当該 UC の spec ファイルを置く**まで `implement` を出さない（`require_uc_prefixed_tests: true` 時）。 |
+| **レッド→グリーンの順序** | **コミット順や「本番コードより先にアサーションを書いたか」は機械検査していない**。Phase 5 で PENDING/skip、Phase 6 で実装・グリーン、という **フェーズ順**での強制。 |
+| **完了条件** | `require-tests-green.sh`（`test_command.run` 全通過）。 |
 
+---
+
+## 理想運用 vs コードのギャップ（把握用）
+
+| 観点 | よく言われる理想 | 実コード |
+|------|------------------|----------|
+| UC とドメインの順序 | 常に UC 全部 → ドメイン | main 上では **UC が既にあるとドメインが先に出る** 分岐あり |
+| UC 実装前にアーキ必須 | あり | **UC ブランチ上では**ドメイン・アーキ未ロックでもテスト設計・実装に進む |
+
+運用で「必ずドメイン→アーキ→UC 実装」にしたい場合は、**ロックを先に済ませてから** UC ブランチに入る、またはコアの分岐変更が必要です。
+
+---
+
+## 日本語ドキュメント
+
+`docs/` 配下の設計書は日本語で問題ありません。**Git 上はブランチ名・UC ファイルの slug は ASCII（kebab-case）推奨**です。

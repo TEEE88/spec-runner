@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "note": "steps/*.md の『宣言（機械可読）』。md は実行テンプレ、こちらはルールと入出力の参照用。",
+  "common": {
+    "docs": {
+      "root": "docs",
+      "charter": "docs/01_憲章/憲章.md",
+      "uc_root": "docs/02_ユースケース仕様",
+      "domain_root": "docs/03_ドメイン設計",
+      "architecture_root": "docs/04_アーキテクチャ",
+      "infra_root": "docs/05_インフラ設計",
+      "api_root": "docs/06_API仕様",
+      "openapi": "docs/06_API仕様/openapi.yaml"
+    },
+    "commands": {
+      "check": ".spec-runner/scripts/check.sh",
+      "start_next_uc": ".spec-runner/scripts/branch/uc-next-start.sh"
+    },
+    "naming": {
+      "uc_id_regex": "^UC-[0-9]+$",
+      "uc_branch_regex": "^(?<prefix>[^/]+)/(?<uc>UC-[0-9]+)-(?<slug>[a-z0-9-]+)$",
+      "uc_spec_regex": "^UC-[0-9]+-.+\\.md$",
+      "decision_log_dir_name": "判断記録",
+      "decision_log_filename_pattern": "UC-N-MMDD-題名.md",
+      "decision_log_example": "UC-1-0317-要件解釈.md"
+    },
+    "clarification_policy": {
+      "marker_format": "[要確認: ...]",
+      "rule": "不明点は推測で確定せず、仕様/設計書内に [要確認: ...] として残す。",
+      "interactive_questions_max": 3,
+      "excess_handling": "質問として提示するのは最大3件。残りは『追加の要確認』として文書内に残す。"
+    },
+    "uc_to_domain_to_arch_flow": {
+      "order": ["charter", "uc_spec", "domain", "architecture"],
+      "note": "憲章の次は UC→ドメイン→アーキ。UC を入力にドメインを固め、ドメインを入力にアーキを固める。"
+    }
+  },
+  "steps": [
+    {
+      "id": "charter",
+      "name_ja": "憲章",
+      "phase": 0,
+      "md_file": "憲章.md",
+      "commands": [
+        { "id": "check", "command": ".spec-runner/scripts/check.sh" }
+      ],
+      "primary_outputs": ["docs/01_憲章/憲章.md"],
+      "notes": ["存在しない場合は .spec-runner/templates/憲章.md から生成する"]
+    },
+    {
+      "id": "uc_spec",
+      "name_ja": "仕様策定",
+      "phase": 1,
+      "md_file": "仕様策定.md",
+      "commands": [
+        { "id": "start_uc_branch", "command": ".spec-runner/scripts/branch/uc-next-start.sh" },
+        { "id": "check", "command": ".spec-runner/scripts/check.sh" }
+      ],
+      "primary_outputs": ["docs/02_ユースケース仕様/<カテゴリ>/UC-<N>-<題名>.md"],
+      "secondary_outputs_optional": ["docs/02_ユースケース仕様/<カテゴリ>/判断記録/UC-N-MMDD-題名.md"]
+    },
+    {
+      "id": "domain",
+      "name_ja": "ドメイン設計",
+      "phase": 2,
+      "md_file": "ドメイン設計.md",
+      "commands": [
+        { "id": "check", "command": ".spec-runner/scripts/check.sh" }
+      ],
+      "primary_outputs": [
+        "docs/03_ドメイン設計/ユビキタス言語辞書.md",
+        "docs/03_ドメイン設計/ドメインモデル.md",
+        "docs/03_ドメイン設計/集約.md"
+      ],
+      "notes": ["存在しない場合は .spec-runner/templates/ から生成する"]
+    },
+    {
+      "id": "architecture_plan",
+      "name_ja": "実装計画",
+      "phase": 3,
+      "md_file": "実装計画.md",
+      "commands": [
+        { "id": "check", "command": ".spec-runner/scripts/check.sh" }
+      ],
+      "primary_outputs": ["docs/04_アーキテクチャ/*"],
+      "secondary_outputs_optional": ["docs/06_API仕様/openapi.yaml"]
+    },
+    {
+      "id": "infra_plan",
+      "name_ja": "インフラ詳細設計（Grade A）",
+      "phase": 4,
+      "md_file": "実装計画.md",
+      "commands": [
+        { "id": "check", "command": ".spec-runner/scripts/check.sh" }
+      ],
+      "primary_outputs": ["docs/05_インフラ設計/schema.dbml"]
+    },
+    {
+      "id": "test_design",
+      "name_ja": "テスト設計",
+      "phase": 5,
+      "md_file": "テスト設計.md",
+      "commands": [
+        { "id": "check", "command": ".spec-runner/scripts/check.sh" }
+      ],
+      "primary_outputs": ["<test_design.dir>/**/UC-N-*.spec.*"]
+    },
+    {
+      "id": "implement",
+      "name_ja": "実装",
+      "phase": 6,
+      "md_file": "実装.md",
+      "commands": [
+        { "id": "check", "command": ".spec-runner/scripts/check.sh" }
+      ],
+      "primary_outputs": ["src/**", "<tests green>"],
+      "notes": ["完了条件: require-tests-green.sh が exit 0"]
+    },
+    {
+      "id": "clarify",
+      "name_ja": "曖昧さ解消",
+      "phase": 1,
+      "md_file": "曖昧さ解消.md",
+      "commands": [
+        { "id": "check", "command": ".spec-runner/scripts/check.sh" }
+      ],
+      "primary_outputs": ["docs/02_ユースケース仕様/<カテゴリ>/UC-<N>-<題名>.md (更新)"]
+    },
+    {
+      "id": "analyze",
+      "name_ja": "分析",
+      "phase": 1,
+      "md_file": "分析.md",
+      "commands": [
+        { "id": "check", "command": ".spec-runner/scripts/check.sh" }
+      ],
+      "primary_outputs": ["docs/02_ユースケース仕様/<カテゴリ>/UC-<N>-<題名>.md (更新)"]
+    },
+    {
+      "id": "checklist",
+      "name_ja": "チェックリスト",
+      "phase": 1,
+      "md_file": "チェックリスト.md",
+      "commands": [
+        { "id": "check", "command": ".spec-runner/scripts/check.sh" }
+      ],
+      "primary_outputs": ["docs/02_ユースケース仕様/<カテゴリ>/checklists/*.md (任意)"]
+    },
+    {
+      "id": "task_list",
+      "name_ja": "タスク一覧",
+      "phase": 1,
+      "md_file": "タスク一覧.md",
+      "commands": [
+        { "id": "check", "command": ".spec-runner/scripts/check.sh" }
+      ],
+      "primary_outputs": ["docs/02_ユースケース仕様/<カテゴリ>/UC-<N>-<題名>.md (## タスク / ## タスク一覧 更新)"]
+    },
+    {
+      "id": "other_work",
+      "name_ja": "その他作業",
+      "phase": 1,
+      "md_file": "その他作業.md",
+      "commands": [
+        { "id": "check", "command": ".spec-runner/scripts/check.sh" }
+      ],
+      "primary_outputs": ["(branch scoped)"]
+    }
+  ]
+}
+

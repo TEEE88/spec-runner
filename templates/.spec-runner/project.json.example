@@ -1,23 +1,25 @@
 {
-  "_comment": "init-project.sh または AI との対話で作成。other_work_prefixes は UC 以外の作業用ブランチ（例: feature/cicd/xxx）。",
+  "_comment": "AI が編集して作成。other_work_prefixes は UC 以外の作業用ブランチ（例: feature/cicd/xxx）。",
+  "_comment_required_docs": "required_docs は steps.json を単一ソースにするため、\"steps:<common.docsキー>[/suffix]\" を指定できる（例: steps:openapi, steps:domain_root/集約.md）。",
   "naming": {
     "branch_prefix": "feature",
-    "uc_id_pattern": "UC-[0-9]{3}",
+    "uc_id_pattern": "UC-[0-9]+",
     "uc_spec_basename": "{uc_id}-{slug}.md",
     "adr_basename": "MMDD-{title}.md",
     "docs_05_categories": true,
     "other_work_prefixes": ["work", "infra", "cicd"]
   },
   "required_docs": {
-    "charter": ["docs/01_憲章/憲章.md"],
-    "domain": ["docs/03_ドメイン設計/ユビキタス言語辞書.md", "docs/03_ドメイン設計/ドメインモデル.md", "docs/03_ドメイン設計/集約.md"],
-    "architecture": ["docs/04_アーキテクチャ/パターン選定.md", "docs/04_アーキテクチャ/インフラ方針.md", "docs/04_アーキテクチャ/設計判断記録"],
-    "grade_a": ["docs/05_インフラ設計/schema.dbml"],
-    "gate3_openapi": ["docs/06_API仕様/openapi.yaml"]
+    "charter": ["steps:charter"],
+    "domain": ["steps:domain_root/ユビキタス言語辞書.md", "steps:domain_root/ドメインモデル.md", "steps:domain_root/集約.md"],
+    "architecture": ["steps:architecture_root/パターン選定.md", "steps:architecture_root/インフラ方針.md", "steps:architecture_root/設計判断記録"],
+    "grade_a": ["steps:infra_root/schema.dbml"],
+    "gate3_openapi": ["steps:openapi"]
   },
   "test_design": {
     "dir": "tests",
-    "pattern": "*.spec.*"
+    "pattern": "*.spec.*",
+    "require_uc_prefixed_tests": true
   },
   "test_command": {
     "run": "npm test"

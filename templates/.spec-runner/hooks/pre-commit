@@ -6,28 +6,42 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 [[ -n "$REPO_ROOT" ]] || exit 0
 
 branch=$(git branch --show-current)
-bp="feature"
-other_work="work/.+|infra/.+|cicd/.+"
-if [[ -f "$REPO_ROOT/.spec-runner/project.json" ]] && command -v jq >/dev/null 2>&1; then
-  p=$(jq -r '.naming.branch_prefix // empty' "$REPO_ROOT/.spec-runner/project.json" 2>/dev/null); [[ -n "$p" ]] && bp="$p"
-  ow=$(jq -r '.naming.other_work_prefixes[]? | . + "/.+"' "$REPO_ROOT/.spec-runner/project.json" 2>/dev/null | tr '\n' '|' | sed 's/|$//'); [[ -n "$ow" ]] && other_work="$ow"
-fi
-valid_pattern="^(main|develop|${bp}/(UC-[0-9]{3}-.+|${other_work})|fix/UC-[0-9]{3}-.+|release/[0-9]+\.[0-9]+\.[0-9]+.*|hotfix/[0-9]+\.[0-9]+\.[0-9]+-.+)$"
+
+pj="$REPO_ROOT/.spec-runner/project.json"
+[[ -f "$pj" ]] || { echo "pre-commit: project.json がありません: $pj" >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "pre-commit: jq が必要です（brew install jq）" >&2; exit 1; }
+bp="$(jq -r '.naming.branch_prefix // "feature"' "$pj" 2>/dev/null)"
+uc_id_pat="$(jq -r '.naming.uc_id_pattern // "UC-[0-9]+"' "$pj" 2>/dev/null)"
+other_work="$(jq -r '.naming.other_work_prefixes[]? | . + "/.+"' "$pj" 2>/dev/null | tr '\n' '|' | sed 's/|$//')"
+[[ -z "$other_work" ]] && other_work="work/.+|infra/.+|cicd/.+"
+valid_pattern="^(main|develop|${bp}/(${uc_id_pat}-.+|${other_work})|fix/${uc_id_pat}-.+|release/[0-9]+\\.[0-9]+\\.[0-9]+.*|hotfix/[0-9]+\\.[0-9]+\\.[0-9]+-.+)$"
 
 if ! echo "$branch" | grep -qE "$valid_pattern"; then
   echo "❌ ブランチ名が規則違反: $branch"
   echo "   正しい形式:"
-  echo "     ${bp}/UC-{NNN}-{kebab-description}   （新規UC、接頭辞は project.json の branch_prefix）"
+  if [[ -f "$REPO_ROOT/.spec-runner/project.json" ]] && command -v jq >/dev/null 2>&1; then
+    bp=$(jq -r '.naming.branch_prefix // "feature"' "$REPO_ROOT/.spec-runner/project.json" 2>/dev/null || echo "feature")
+  else
+    bp="feature"
+  fi
+  echo "     ${bp}/{UC-ID}-{kebab-description}   （新規UC、UC-IDは project.json の uc_id_pattern）"
   echo "     ${bp}/cicd/xxx  ${bp}/infra/xxx      （その他作業、project.json の other_work_prefixes）"
-  echo "     fix/UC-{NNN}-{kebab-description}        （修正）"
+  echo "     fix/{UC-ID}-{kebab-description}        （修正）"
   echo "     release/{semver}                        （リリース）"
   echo "     hotfix/{semver}-{kebab-description}     （緊急修正）"
   exit 1
 fi
 
 # 命名規則チェック（.spec-runner スクリプトがある場合のみ実行）
-if [[ -x "$REPO_ROOT/.spec-runner/scripts/check/naming.sh" ]]; then
-  "$REPO_ROOT/.spec-runner/scripts/check/naming.sh" || exit 1
+if [[ -d "$REPO_ROOT/src" ]]; then
+  while IFS= read -r dir; do
+    [[ -z "$dir" ]] && continue
+    base=$(basename "$dir")
+    if ! echo "$base" | grep -qE '^[a-z][a-z0-9-]*$'; then
+      echo "NAMING: フォルダ名「$dir」はkebab-caseで命名してください" >&2
+      exit 1
+    fi
+  done < <(find "$REPO_ROOT/src/" -type d 2>/dev/null || true)
 fi
 
 exit 0

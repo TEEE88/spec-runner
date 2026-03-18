@@ -1,0 +1,29 @@
+{
+  "_comment": "フェーズ完了状態の単一ソース。初期状態ではすべて未完了。レビュー状態もここで管理する。インストール時に .spec-runner/phase-locks.json へコピーされる（既にある場合はスキップ）。",
+  "charter": {
+    "completed": false,
+    "locked_at": null,
+    "reviewed_by": null
+  },
+  "domain": {
+    "completed": false,
+    "locked_at": null,
+    "reviewed_by": null
+  },
+  "architecture": {
+    "completed": false,
+    "locked_at": null,
+    "reviewed_by": null
+  },
+  "infra": {
+    "completed": false,
+    "locked_at": null,
+    "reviewed_by": null
+  },
+  "test_design": {
+    "completed": false,
+    "locked_at": null,
+    "reviewed_by": null
+  },
+  "uc_reviewed": []
+}
