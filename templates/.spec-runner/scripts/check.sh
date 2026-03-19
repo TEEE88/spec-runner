@@ -318,10 +318,11 @@ run_health_check() {
   for f in "$UC_ROOT"/*/UC-*.md; do
     [[ -f "$f" ]] || continue
     base=$(basename "$f" .md)
-    if ! grep -qE '受入条件|成功基準|前提:|操作:|期待:|\\|[[:space:]]*前提[[:space:]]*\\|[[:space:]]*操作[[:space:]]*\\|[[:space:]]*期待[[:space:]]*\\|' "$f" 2>/dev/null; then
+    # 表ヘッダ（例: `| 前提 | 操作 | 期待 |`）の `|` は `\|` としてリテラル扱いする
+    if ! grep -qE '受入条件|成功基準|前提:|操作:|期待:|\|[[:space:]]*前提[[:space:]]*\|[[:space:]]*操作[[:space:]]*\|[[:space:]]*期待[[:space:]]*\|' "$f" 2>/dev/null; then
       drifts+=("UC ${base}: 受入条件または成功基準がありません")
     fi
-    count=$(grep -c '\\[要確認:' "$f" 2>/dev/null || echo 0)
+    count=$(grep -c '\[要確認:' "$f" 2>/dev/null || echo 0)
     count=$(echo "$count" | head -1 | tr -cd '0-9'); count=${count:-0}
     [[ "$count" -gt 3 ]] && drifts+=("UC ${base}: [要確認: が ${count} 個（3個以下にすること）")
     # `## 実装方針` / `## タスク(一覧)` は実装計画以降で埋まる想定。
