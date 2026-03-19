@@ -314,7 +314,7 @@ run_health_check() {
   for f in "$UC_ROOT"/*/UC-*.md; do
     [[ -f "$f" ]] || continue
     base=$(basename "$f" .md)
-    if ! grep -qE '受入条件|成功基準|Given|When|Then|EARS' "$f" 2>/dev/null; then
+    if ! grep -qE '受入条件|成功基準|前提:|操作:|期待:|\\|[[:space:]]*前提[[:space:]]*\\|[[:space:]]*操作[[:space:]]*\\|[[:space:]]*期待[[:space:]]*\\|' "$f" 2>/dev/null; then
       drifts+=("UC ${base}: 受入条件または成功基準がありません")
     fi
     count=$(grep -c '\\[要確認:' "$f" 2>/dev/null || echo 0)

@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 # 次の UC を開始する: main に切り替え、feature/UC-N-xxx ブランチを作成する。
 # 使用例:
-#   ./uc-next-start.sh                    # 次 UC 番号を自動検出。説明はプロンプトまたは "next-uc" で作成
-#   ./uc-next-start.sh task-update        # 次 UC 番号 + 説明 "task-update" でブランチ作成
-#   ./uc-next-start.sh task-update 認証    # 次 UC 番号 + 説明 + カテゴリ
-#   ./uc-next-start.sh UC-2 task-update   # 指定 UC + 説明
-#   ./uc-next-start.sh UC-2 task-update 認証 # 指定 UC + 説明 + カテゴリ
-#   ./uc-next-start.sh --yes task-update  # 確認なしで実行
+#   ./uc-next-start.sh "task-management" "タスク管理機能追加" "タスク管理"
+#   ./uc-next-start.sh UC-2 "order-cancel" "注文キャンセル" "注文"
+#   ./uc-next-start.sh --yes "task-management" "タスク管理機能追加" "タスク管理"
+# 引数仕様（位置引数）:
+#   [UC-ID] [SLUG] [TITLE] [CATEGORY]
+#   - UC-ID: 省略可（例: UC-2）
+#   - SLUG: 必須。ブランチ用の短名（ASCII, kebab-case 推奨）
+#   - TITLE: 必須。UC ファイル題名（日本語推奨）
+#   - CATEGORY: 必須。docs/02_ユースケース仕様/ 配下のカテゴリ名（日本語可）
+# 重要: 空欄の引数は禁止。SLUG/TITLE/CATEGORY は必ず指定する
 # 実行後は次のステップに進む旨を案内する。
 
 set -e
@@ -20,8 +24,12 @@ for a in "$@"; do
   case "$a" in
     --yes|-y) YES_MODE=true ;;
     *)
-      # 空引数は無視（例: "" "task-management" "カテゴリ"）
-      [[ -n "$a" ]] && ARGS+=("$a")
+      # 空引数は禁止
+      if [[ -z "$a" ]]; then
+        echo "Error: 空文字の引数は使用できません。UC-ID を省略する場合は引数自体を渡さないでください。" >&2
+        exit 1
+      fi
+      ARGS+=("$a")
       ;;
   esac
 done
@@ -56,61 +64,62 @@ next_uc_id() {
 }
 
 NEXT_UC="$(next_uc_id)"
-DESC=""
+SLUG=""
+TITLE=""
 CATEGORY=""
-
-# ファイル題名は日本語優先にするため、スクリプト引数の「生の説明」を保持する
-RAW_DESC=""
-if [[ ${#ARGS[@]} -ge 2 ]] && [[ "${ARGS[0]}" =~ ^${UC_ID_RE}$ ]]; then
+if [[ ${#ARGS[@]} -ge 1 ]] && [[ "${ARGS[0]}" =~ ^${UC_ID_RE}$ ]]; then
+  [[ ${#ARGS[@]} -eq 4 ]] || {
+    echo "Usage: .spec-runner/scripts/branch/uc-next-start.sh [UC-ID] \"SLUG\" \"TITLE\" \"CATEGORY\" [--yes]" >&2
+    echo "  - UC-ID を指定した場合は SLUG/TITLE/CATEGORY の3引数が必須です" >&2
+    exit 1
+  }
   NEXT_UC="${ARGS[0]}"
-  DESC="${ARGS[1]}"
-  RAW_DESC="${ARGS[1]}"
-  CATEGORY="${ARGS[2]:-}"
-elif [[ ${#ARGS[@]} -ge 1 ]]; then
-  DESC="${ARGS[0]}"
-  RAW_DESC="${ARGS[0]}"
-  CATEGORY="${ARGS[1]:-}"
-fi
-
-# 説明が無ければデフォルト（next-uc や UC 番号ベース）
-if [[ -z "$DESC" ]]; then
-  if [[ "$YES_MODE" == true ]]; then
-    DESC="next-uc"
-  else
-    echo "次の UC 用ブランチを作成します。"
-    echo "  UC: $NEXT_UC"
-    echo -n "  説明（英数字・ハイフン推奨。日本語のみの場合は uc-001 等にフォールバック。Enter で \"next-uc\"）: "
-    read -r DESC
-    DESC="${DESC:-next-uc}"
-  fi
-fi
-
-# 説明は英小文字・ハイフン（Git ブランチ名は ASCII のみ）。日本語など非 ASCII はサニタイズで除去される
-# macOS(BSD sed) でも動くように、連続ハイフンは 's/--*/-/g' で圧縮する
-DESC=$(echo "$DESC" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-*//' | sed 's/-*$//')
-# サニタイズ後に空（日本語のみの説明など）の場合は UC 番号ベースのスラグでフォールバック
-[[ -z "$DESC" ]] && DESC="uc-$(echo "$NEXT_UC" | sed 's/^UC-//')"
-BRANCH_NAME="${BRANCH_PREFIX}/${NEXT_UC}-${DESC}"
-
-# UC 仕様書ファイル名は必ず日本語にする（題名が ASCII のみなら「要確認」にする）
-DOC_TITLE="$RAW_DESC"
-if [[ -z "$DOC_TITLE" ]]; then
-  DOC_TITLE="要確認"
+  SLUG="${ARGS[1]}"
+  TITLE="${ARGS[2]}"
+  CATEGORY="${ARGS[3]}"
 else
-  # 非ASCIIが無い（= 英数字/記号のみ）なら、日本語題名が無い扱いにして要確認へ
-  if echo "$DOC_TITLE" | LC_ALL=C grep -q '^[ -~]*$'; then
-    DOC_TITLE="要確認"
-  fi
+  [[ ${#ARGS[@]} -eq 3 ]] || {
+    echo "Usage: .spec-runner/scripts/branch/uc-next-start.sh [UC-ID] \"SLUG\" \"TITLE\" \"CATEGORY\" [--yes]" >&2
+    echo "  - UC-ID は任意、SLUG/TITLE/CATEGORY は必須です（空文字禁止）" >&2
+    exit 1
+  }
+  SLUG="${ARGS[0]}"
+  TITLE="${ARGS[1]}"
+  CATEGORY="${ARGS[2]}"
 fi
+
+# SLUG / TITLE / CATEGORY は必須（UC-ID のみ任意）
+if [[ -z "$SLUG" || -z "$TITLE" || -z "$CATEGORY" ]]; then
+  echo "Usage: .spec-runner/scripts/branch/uc-next-start.sh [UC-ID] \"SLUG\" \"TITLE\" \"CATEGORY\" [--yes]" >&2
+  echo "  - UC-ID は任意、SLUG/TITLE/CATEGORY は必須です（空文字禁止）" >&2
+  exit 1
+fi
+
+# SLUG は英小文字・ハイフン（Git ブランチ名は ASCII のみ）
+# macOS(BSD sed) でも動くように、連続ハイフンは 's/--*/-/g' で圧縮する
+SLUG=$(echo "$SLUG" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-*//' | sed 's/-*$//')
+if [[ -z "$SLUG" ]]; then
+  echo "Error: SLUG は英数字・ハイフンへ正規化可能な値を指定してください（例: task-management）。" >&2
+  exit 1
+fi
+BRANCH_NAME="${BRANCH_PREFIX}/${NEXT_UC}-${SLUG}"
+
+# UC ファイル題名
+DOC_TITLE="$TITLE"
 # ファイル名に危険な文字が入らないように除去（日本語は許可）
 DOC_TITLE=$(echo "$DOC_TITLE" | sed 's/[\\\\\\/\\:\\*\\?\\\"\\<\\>\\|]/ /g' | sed 's/[[:space:]]\\+/ /g' | sed 's/^ *//; s/ *$//')
-[[ -z "$DOC_TITLE" ]] && DOC_TITLE="要確認"
+if [[ -z "$DOC_TITLE" ]]; then
+  echo "Error: TITLE が不正です（危険文字除去後に空になりました）。" >&2
+  exit 1
+fi
 
-# カテゴリ（省略時はデフォルト）。日本語カテゴリは許可し、危険文字だけ除去。
-CATEGORY="${CATEGORY:-ユースケース}"
+# カテゴリは必須。日本語カテゴリは許可し、危険文字だけ除去。
 # 文字レンジ指定は sed 実装差で壊れやすいため、危険文字のみを除去する。
 CATEGORY=$(echo "$CATEGORY" | sed 's/[\\\/:\*\?"<>|]//g' | sed 's/[[:cntrl:]]//g' | sed 's/[[:space:]]\+/ /g' | sed 's/^ *//; s/ *$//')
-[[ -z "$CATEGORY" ]] && CATEGORY="ユースケース"
+if [[ -z "$CATEGORY" ]]; then
+  echo "Error: CATEGORY は空にできません。" >&2
+  exit 1
+fi
 
 if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
   echo "Error: ブランチ '$BRANCH_NAME' は既に存在します。" >&2
