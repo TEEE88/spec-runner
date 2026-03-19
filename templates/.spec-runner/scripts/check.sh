@@ -297,6 +297,13 @@ schema_drift_check() {
 
 run_health_check() {
   local drifts=()
+  local current_phase=0
+
+  # フェーズに応じてチェック強度を段階適用する
+  if [[ -x ".spec-runner/scripts/spec-runner-core.sh" ]] && command -v jq >/dev/null 2>&1; then
+    current_phase="$(.spec-runner/scripts/spec-runner-core.sh --json 2>/dev/null | jq -r '.phase // 0' 2>/dev/null)"
+    [[ -n "$current_phase" && "$current_phase" != "null" ]] || current_phase=0
+  fi
 
   UC_ROOT="$(get_steps_common_doc "uc_root")"
   DOMAIN_ROOT="$(get_steps_common_doc "domain_root")"
@@ -317,16 +324,20 @@ run_health_check() {
     grep -qE '^## タスク一覧|^## タスク\\b' "$f" 2>/dev/null || drifts+=("UC ${base}: 「## タスク」または「## タスク一覧」の見出しがありません（UC 仕様書の一番下に記載すること）")
   done
 
-  adr_count=$(find "$ARCH_ROOT/設計判断記録" -name "*.md" 2>/dev/null | wc -l)
-  [[ "${adr_count:-0}" -lt 1 ]] && drifts+=("ADR が 1 件もありません（設計判断記録）")
-
-  if [[ ! -f "$DOMAIN_ROOT/ユビキタス言語辞書.md" ]]; then
-    drifts+=("ユビキタス言語辞書.md が存在しません")
-  else
-    grep -qE '禁止語|forbidden' "$DOMAIN_ROOT/ユビキタス言語辞書.md" 2>/dev/null || drifts+=("ユビキタス言語辞書に禁止語欄が定義されていません")
+  if [[ "$current_phase" -ge 3 ]]; then
+    adr_count=$(find "$ARCH_ROOT/設計判断記録" -name "*.md" 2>/dev/null | wc -l)
+    [[ "${adr_count:-0}" -lt 1 ]] && drifts+=("ADR が 1 件もありません（設計判断記録）")
   fi
-  if [[ -f "$DOMAIN_ROOT/集約.md" ]]; then
-    grep -q '対応テーブル' "$DOMAIN_ROOT/集約.md" 2>/dev/null || drifts+=("集約.md に「対応テーブル」欄がありません")
+
+  if [[ "$current_phase" -ge 2 ]]; then
+    if [[ ! -f "$DOMAIN_ROOT/ユビキタス言語辞書.md" ]]; then
+      drifts+=("ユビキタス言語辞書.md が存在しません")
+    else
+      grep -qE '禁止語|forbidden' "$DOMAIN_ROOT/ユビキタス言語辞書.md" 2>/dev/null || drifts+=("ユビキタス言語辞書に禁止語欄が定義されていません")
+    fi
+    if [[ -f "$DOMAIN_ROOT/集約.md" ]]; then
+      grep -q '対応テーブル' "$DOMAIN_ROOT/集約.md" 2>/dev/null || drifts+=("集約.md に「対応テーブル」欄がありません")
+    fi
   fi
 
   if [[ ! -f ".spec-runner/grade-history.json" ]]; then
@@ -334,13 +345,15 @@ run_health_check() {
   elif command -v jq >/dev/null 2>&1; then
     grade=$(jq -r '.current_grade' .spec-runner/grade-history.json)
     [[ -n "$grade" && "$grade" != "null" ]] || drifts+=("grade-history.json の current_grade が未設定です")
-    if [[ "$grade" == "A" ]]; then
+    if [[ "$grade" == "A" && "$current_phase" -ge 4 ]]; then
       [[ ! -f "$INFRA_ROOT/schema.dbml" ]] && drifts+=("Grade A 必須: schema.dbml が存在しません")
       schema_sync_check >/dev/null 2>&1 || drifts+=("Prisma と schema.dbml のテーブルが一致していません（スキーマ同期チェック）")
     fi
   fi
 
-  [[ ! -f "$OPENAPI_PATH" ]] && drifts+=("openapi.yaml が存在しません")
+  if [[ "$current_phase" -ge 3 ]]; then
+    [[ ! -f "$OPENAPI_PATH" ]] && drifts+=("openapi.yaml が存在しません")
+  fi
 
   if [[ ${#drifts[@]} -eq 0 ]]; then
     ok "健全性確認: 問題なし"
