@@ -19,7 +19,10 @@ ARGS=()
 for a in "$@"; do
   case "$a" in
     --yes|-y) YES_MODE=true ;;
-    *)        ARGS+=("$a") ;;
+    *)
+      # 空引数は無視（例: "" "task-management" "カテゴリ"）
+      [[ -n "$a" ]] && ARGS+=("$a")
+      ;;
   esac
 done
 
@@ -114,14 +117,25 @@ if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
 fi
 
 CURRENT=$(git branch --show-current 2>/dev/null || echo "")
-MAIN_BRANCH="main"
-if ! git rev-parse --verify "$MAIN_BRANCH" >/dev/null 2>&1; then
-  MAIN_BRANCH="master"
-  if ! git rev-parse --verify "$MAIN_BRANCH" >/dev/null 2>&1; then
-    echo "Error: main も master も存在しません。" >&2
-    exit 1
+MAIN_BRANCH=""
+
+# 1) origin/HEAD からデフォルトブランチを取得
+if git symbolic-ref -q --short refs/remotes/origin/HEAD >/dev/null 2>&1; then
+  MAIN_BRANCH="$(git symbolic-ref -q --short refs/remotes/origin/HEAD | sed 's#^origin/##')"
+fi
+# 2) main / master をフォールバック
+if [[ -z "$MAIN_BRANCH" ]]; then
+  if git rev-parse --verify "main" >/dev/null 2>&1; then
+    MAIN_BRANCH="main"
+  elif git rev-parse --verify "master" >/dev/null 2>&1; then
+    MAIN_BRANCH="master"
   fi
 fi
+# 3) どれも無ければ現在ブランチ（初期ブランチ名が trunk/develop 等のケース）
+if [[ -z "$MAIN_BRANCH" ]]; then
+  MAIN_BRANCH="${CURRENT:-}"
+fi
+[[ -n "$MAIN_BRANCH" ]] || { echo "Error: ベースブランチを特定できません（main/master/current が見つかりません）。" >&2; exit 1; }
 
 if [[ "$YES_MODE" != true ]]; then
   echo "次の UC を開始する準備をします。"
