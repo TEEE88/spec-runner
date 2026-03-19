@@ -119,7 +119,7 @@
     {
       "id": "clarify",
       "name_ja": "曖昧さ解消",
-      "phase": 1,
+      "phase": null,
       "md_file": "曖昧さ解消.md",
       "commands": [
         { "id": "check", "command": ".spec-runner/scripts/check.sh" }
@@ -129,7 +129,7 @@
     {
       "id": "analyze",
       "name_ja": "分析",
-      "phase": 1,
+      "phase": null,
       "md_file": "分析.md",
       "commands": [
         { "id": "check", "command": ".spec-runner/scripts/check.sh" }

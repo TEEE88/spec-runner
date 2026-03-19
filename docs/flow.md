@@ -152,12 +152,14 @@
 | phase | step_id（代表） | 内容 |
 |-------|-----------------|------|
 | 0 | `charter` | 憲章 |
-| 1 | `uc_spec` / `clarify` / `other_work` | UC 仕様・曖昧さ解消・その他ブランチ |
+| 1 | `uc_spec` / `other_work` | UC 仕様・その他ブランチ |
 | 2 | `domain` | ドメイン設計 |
 | 3 | `architecture_plan` | 実装計画（アーキ） |
 | 4 | `infra_plan` | インフラ詳細（Grade A） |
 | 5 | `test_design` | PENDING テスト |
 | 6 | `implement` | 実装・テストグリーン |
+
+`clarify`（曖昧さ解消）と `analyze`（分析）は `phase: null` の任意ステップとして扱い、必要なタイミングで実行できます。
 
 ### 実装完了（Phase 6）の機械的条件
 
