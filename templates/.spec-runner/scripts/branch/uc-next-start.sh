@@ -108,7 +108,8 @@ DOC_TITLE=$(echo "$DOC_TITLE" | sed 's/[\\\\\\/\\:\\*\\?\\\"\\<\\>\\|]/ /g' | se
 
 # カテゴリ（省略時はデフォルト）。日本語カテゴリは許可し、危険文字だけ除去。
 CATEGORY="${CATEGORY:-ユースケース}"
-CATEGORY=$(echo "$CATEGORY" | sed 's/[^a-zA-Z0-9_ーぁ-んァ-ン一-龥\-]//g')
+# 文字レンジ指定は sed 実装差で壊れやすいため、危険文字のみを除去する。
+CATEGORY=$(echo "$CATEGORY" | sed 's/[\\\/:\*\?"<>|]//g' | sed 's/[[:cntrl:]]//g' | sed 's/[[:space:]]\+/ /g' | sed 's/^ *//; s/ *$//')
 [[ -z "$CATEGORY" ]] && CATEGORY="ユースケース"
 
 if git rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
