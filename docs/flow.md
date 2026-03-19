@@ -81,9 +81,19 @@
 
 実装では **次の順で最初に当てはまる分岐**が選ばれます（UC ブランチでも `other_work` ブランチでもない場合）。
 
-1. **`charter.completed` でない** → **`charter`**
-2. **ドメイン未ロックかつ `docs/02_...` に UC が 1 件以上** → **`domain`**
-3. **ドメイン済みかつアーキ未ロック** → **`architecture_plan`**（`実装計画.md`）
+1. **`charter.completed` でない**
+   - `docs/01_憲章/憲章.md` が無い → **`charter`**
+   - `docs/01_憲章/憲章.md` があり、`quality.clarified.charter` 未記録 → **`clarify`**（憲章の曖昧さ解消）
+   - `docs/01_憲章/憲章.md` があり、`quality.analyzed.charter` 未記録 → **`analyze`**（憲章の分析）
+   - 上記が記録済み → **`charter`**
+2. **ドメイン未ロックかつ `docs/02_...` に UC が 1 件以上**
+   - `docs/03_ドメイン設計/` に `.md` があり、`quality.clarified.domain` 未記録 → **`clarify`**
+   - `docs/03_ドメイン設計/` に `.md` があり、`quality.analyzed.domain` 未記録 → **`analyze`**
+   - 上記が記録済み、または `.md` が無い → **`domain`**
+3. **ドメイン済みかつアーキ未ロック**
+   - `docs/04_アーキテクチャ/` に `.md` があり、`quality.clarified.architecture` 未記録 → **`clarify`**
+   - `docs/04_アーキテクチャ/` に `.md` があり、`quality.analyzed.architecture` 未記録 → **`analyze`**
+   - 上記が記録済み、または `.md` が無い → **`architecture_plan`**
 4. **`other_work` 用ブランチ**（`feature/<other_work_prefix>/...`）かつ **2・3 を通過済み**（ドメイン完了＋アーキ完了、または UC 0 件で 2 をスキップした状態など）→ **`other_work`**  
    ※ **2** と同条件（UC あり・ドメイン未ロック）のときは **2 の `domain` が先**（`other_work` ブランチ上でも同様）。
 5. **ドメイン未ロック**（この時点では UC が 0 件）→ **`uc_spec`**
@@ -160,6 +170,9 @@
 | 6 | `implement` | 実装・テストグリーン |
 
 `clarify`（曖昧さ解消）と `analyze`（分析）は `phase: null` の任意ステップとして扱い、必要なタイミングで実行できます。
+
+補足: `clarify` / `analyze` の自動実行は `.spec-runner/phase-locks.json` の `quality` によって 1 度ずつ管理します。  
+（UC は `uc_reviewed` 未登録の間、`clarify -> analyze -> clarify ...` の品質ループを回せます）
 
 ### 実装完了（Phase 6）の機械的条件
 

@@ -267,6 +267,27 @@ run_phase() {
   check_command=""
   feature_dir=""
   feature_spec=""
+  charter_doc="$(get_steps_common_doc "charter")"
+  domain_root="$(get_steps_common_doc "domain_root")"
+  architecture_root="$(get_steps_common_doc "architecture_root")"
+
+  first_md_in_dir() {
+    local d="$1"
+    [[ -d "$d" ]] || return 1
+    find "$d" -type f -name "*.md" 2>/dev/null | sort | head -1
+  }
+
+  doc_key() {
+    local f="$1"
+    basename "$f" .md
+  }
+
+  quality_done() {
+    local kind="$1"   # clarified | analyzed
+    local scope="$2"  # charter | domain | architecture | uc
+    local key="$3"
+    jq -e --arg k "$key" --arg s "$scope" ".quality.${kind}[\$s][]? == \$k" "$LOCK_FILE" >/dev/null 2>&1
+  }
 
   resolve_step() {
     local sid="$1"
@@ -293,11 +314,52 @@ run_phase() {
   uc_count_total=${uc_count_total:-0}
 
   if [[ $has_charter_lock -eq 0 ]]; then
-    phase=0; phase_name_ja="憲章策定"; resolve_step "charter"
+    if [[ -f "$charter_doc" ]]; then
+      ckey="$(doc_key "$charter_doc")"
+      feature_spec="$charter_doc"
+      feature_dir="$(dirname "$charter_doc")"
+      if ! quality_done "clarified" "charter" "$ckey"; then
+        phase=0; phase_name_ja="憲章（曖昧さ解消）"; resolve_step "clarify"
+      elif ! quality_done "analyzed" "charter" "$ckey"; then
+        phase=0; phase_name_ja="憲章（分析）"; resolve_step "analyze"
+      else
+        phase=0; phase_name_ja="憲章策定"; resolve_step "charter"
+      fi
+    else
+      phase=0; phase_name_ja="憲章策定"; resolve_step "charter"
+    fi
   elif [[ $has_domain_lock -eq 0 && ${uc_count_total} -gt 0 && $on_uc_branch -eq 0 ]]; then
-    phase=2; phase_name_ja="ドメイン設計"; resolve_step "domain"
+    domain_spec="$(first_md_in_dir "$domain_root" || true)"
+    if [[ -n "$domain_spec" ]]; then
+      feature_spec="$domain_spec"
+      feature_dir="$(dirname "$domain_spec")"
+      dkey="$(doc_key "$domain_spec")"
+      if ! quality_done "clarified" "domain" "$dkey"; then
+        phase=2; phase_name_ja="ドメイン設計（曖昧さ解消）"; resolve_step "clarify"
+      elif ! quality_done "analyzed" "domain" "$dkey"; then
+        phase=2; phase_name_ja="ドメイン設計（分析）"; resolve_step "analyze"
+      else
+        phase=2; phase_name_ja="ドメイン設計"; resolve_step "domain"
+      fi
+    else
+      phase=2; phase_name_ja="ドメイン設計"; resolve_step "domain"
+    fi
   elif [[ $has_arch_lock -eq 0 && $has_domain_lock -eq 1 ]]; then
-    phase=3; phase_name_ja="アーキテクチャ選択"; resolve_step "architecture_plan"
+    arch_spec="$(first_md_in_dir "$architecture_root" || true)"
+    if [[ -n "$arch_spec" ]]; then
+      feature_spec="$arch_spec"
+      feature_dir="$(dirname "$arch_spec")"
+      akey="$(doc_key "$arch_spec")"
+      if ! quality_done "clarified" "architecture" "$akey"; then
+        phase=3; phase_name_ja="アーキテクチャ選択（曖昧さ解消）"; resolve_step "clarify"
+      elif ! quality_done "analyzed" "architecture" "$akey"; then
+        phase=3; phase_name_ja="アーキテクチャ選択（分析）"; resolve_step "analyze"
+      else
+        phase=3; phase_name_ja="アーキテクチャ選択"; resolve_step "architecture_plan"
+      fi
+    else
+      phase=3; phase_name_ja="アーキテクチャ選択"; resolve_step "architecture_plan"
+    fi
   elif [[ $on_uc_branch -eq 1 ]]; then
     uc_spec=""
     if [[ -n "$current_uc_id" ]]; then
@@ -312,7 +374,13 @@ run_phase() {
       reviewed=0
       jq -e --arg u "$uc_dir" '.uc_reviewed[]? == $u' "$LOCK_FILE" 2>/dev/null | grep -q true && reviewed=1
       if [[ $reviewed -eq 0 ]]; then
-        phase=1; phase_name_ja="ユースケース仕様（レビュー通過まで）"; resolve_step "clarify"
+        if ! quality_done "clarified" "uc" "$uc_dir"; then
+          phase=1; phase_name_ja="ユースケース仕様（曖昧さ解消）"; resolve_step "clarify"
+        elif ! quality_done "analyzed" "uc" "$uc_dir"; then
+          phase=1; phase_name_ja="ユースケース仕様（分析）"; resolve_step "analyze"
+        else
+          phase=1; phase_name_ja="ユースケース仕様（レビュー通過まで）"; resolve_step "clarify"
+        fi
       else
         if [[ "$grade" == "A" ]] && [[ $has_infra_lock -eq 0 ]]; then
           phase=4; phase_name_ja="インフラ詳細設計"; resolve_step "infra_plan"
