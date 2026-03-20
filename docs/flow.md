@@ -46,6 +46,7 @@
 | `architecture` | アーキ（実装計画）フェーズ完了 |
 | `infra` | インフラ詳細（Grade A）完了 |
 | `test_design` | テスト設計ロック（ゲート側で参照） |
+| `uc_discovery` | UC 洗い出し完了（`false` の間は domain に進まない） |
 | `uc_reviewed` | **文字列の配列**。UC 仕様ファイルの **ベース名（拡張子なし）** が入ると「レビュー通過」とみなす（例: `UC-1-foo`） |
 
 ### `.spec-runner/grade-history.json`
@@ -71,11 +72,12 @@
 
 1. 該当 `UC-N-*.md` が **まだ無い** → **`uc_spec`**（仕様策定）
 2. 仕様はあるが **`uc_reviewed` にベース名が無い** → **`clarify`**（曖昧さ解消・レビュー通過まで）
-3. レビュー済みかつ **Grade A かつ `infra.completed` でない** → **`infra_plan`**
-4. それ以外で **当該 UC 用テストが未準備**（`require_uc_prefixed_tests` が true のときは **`UC-N-*.spec.*` 形式が1つ以上**）→ **`test_design`**
-5. 上記を満たす → **`implement`**（あわせて **テストがグリーン**になるまで完了とみなさないのは `require-tests-green.sh` 側）
+3. レビュー済みかつ **`uc_discovery.completed` が false** → **`uc_spec`**（次UC作成）
+4. レビュー済みかつ **Grade A かつ `infra.completed` でない** → **`infra_plan`**
+5. それ以外で **当該 UC 用テストが未準備**（`require_uc_prefixed_tests` が true のときは **`UC-N-*.spec.*` 形式が1つ以上**）→ **`test_design`**
+6. 上記を満たす → **`implement`**（あわせて **テストがグリーン**になるまで完了とみなさないのは `require-tests-green.sh` 側）
 
-※ **ドメイン・アーキのロック未完了でも**、上記 UC ブランチ上では 3〜5 に進めます（コア実装どおり）。
+※ **ドメイン・アーキのロック未完了でも**、上記 UC ブランチ上では 3〜6 に進めます（コア実装どおり）。
 
 ### 2) UC ブランチではない（main 等）
 
@@ -86,24 +88,24 @@
    - `docs/01_憲章/憲章.md` があり、`quality.clarified.charter` 未記録 → **`clarify`**（憲章の曖昧さ解消）
    - `docs/01_憲章/憲章.md` があり、`quality.analyzed.charter` 未記録 → **`analyze`**（憲章の分析）
    - 上記が記録済み → **`charter`**
-2. **ドメイン未ロックかつ `docs/02_...` に UC が 1 件以上**
+2. **ドメイン未ロックかつ `uc_discovery.completed` が false** → **`uc_spec`**（次UC作成）
+3. **ドメイン未ロックかつ `uc_discovery.completed` が true かつ `docs/02_...` に UC が 1 件以上**
    - `docs/03_ドメイン設計/` に `.md` があり、`quality.clarified.domain` 未記録 → **`clarify`**
    - `docs/03_ドメイン設計/` に `.md` があり、`quality.analyzed.domain` 未記録 → **`analyze`**
    - 上記が記録済み、または `.md` が無い → **`domain`**
-3. **ドメイン済みかつアーキ未ロック**
+4. **ドメイン済みかつアーキ未ロック**
    - `docs/04_アーキテクチャ/` に `.md` があり、`quality.clarified.architecture` 未記録 → **`clarify`**
    - `docs/04_アーキテクチャ/` に `.md` があり、`quality.analyzed.architecture` 未記録 → **`analyze`**
    - 上記が記録済み、または `.md` が無い → **`architecture_plan`**
-4. **`other_work` 用ブランチ**（`feature/<other_work_prefix>/...`）かつ **2・3 を通過済み**（ドメイン完了＋アーキ完了、または UC 0 件で 2 をスキップした状態など）→ **`other_work`**  
-   ※ **2** と同条件（UC あり・ドメイン未ロック）のときは **2 の `domain` が先**（`other_work` ブランチ上でも同様）。
-5. **ドメイン未ロック**（この時点では UC が 0 件）→ **`uc_spec`**
-6. **ドメイン・アーキともロック済み** → **`uc_spec`**（次の UC 開始）
+5. **`other_work` 用ブランチ**（`feature/<other_work_prefix>/...`）かつ **2〜4 を通過済み** → **`other_work`**
+6. **ドメイン未ロック**（この時点では UC が 0 件）→ **`uc_spec`**
+7. **ドメイン・アーキともロック済み** → **`uc_spec`**（次の UC 開始）
 
 要点:
 
-- **初回**: main で UC がまだ無いと **5** で **`uc_spec`**。
-- **UC がリポジトリに既にあるのにドメイン未ロック**（main で作業）→ **2** で **`domain`** が **`uc_spec` より先**。
-- **アーキ**は **ドメイン完了後**に **3** で出る。
+- **初回**: main で UC がまだ無いと **6** で **`uc_spec`**。
+- **UC がリポジトリに既にあるのにドメイン未ロック**（main で作業）→ `uc_discovery.completed=false` の間は **`uc_spec`** が先（`true` になってから **`domain`**）。
+- **アーキ**は **ドメイン完了後**に **4** で出る。
 
 ### 3) 自動では選ばれないステップ（`steps.json` にのみ存在）
 
@@ -199,7 +201,7 @@
 
 | 観点 | よく言われる理想 | 実コード |
 |------|------------------|----------|
-| UC とドメインの順序 | 常に UC 全部 → ドメイン | main 上では **UC が既にあるとドメインが先に出る** 分岐あり |
+| UC とドメインの順序 | 常に UC 全部 → ドメイン | `uc_discovery.completed=false` の間は次UC（`uc_spec`）→ `true` になってから domain |
 | UC 実装前にアーキ必須 | あり | **UC ブランチ上では**ドメイン・アーキ未ロックでもテスト設計・実装に進む |
 
 運用で「必ずドメイン→アーキ→UC 実装」にしたい場合は、**ロックを先に済ませてから** UC ブランチに入る、またはコアの分岐変更が必要です。

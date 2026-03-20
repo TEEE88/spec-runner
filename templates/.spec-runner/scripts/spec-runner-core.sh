@@ -71,6 +71,7 @@ has_charter_lock=0
 has_domain_lock=0
 has_arch_lock=0
 has_infra_lock=0
+uc_discovery_completed=0
 grade=""
 branch=""
 test_dir=""
@@ -87,6 +88,7 @@ load_state() {
   jq -e '.domain.completed == true' "$LOCK_FILE" >/dev/null 2>&1 && has_domain_lock=1
   jq -e '.architecture.completed == true' "$LOCK_FILE" >/dev/null 2>&1 && has_arch_lock=1
   jq -e '.infra.completed == true' "$LOCK_FILE" >/dev/null 2>&1 && has_infra_lock=1
+  jq -e '.uc_discovery.completed == true' "$LOCK_FILE" >/dev/null 2>&1 && uc_discovery_completed=1
 
   grade=$(jq -r '.current_grade' "$GRADE_FILE")
   [[ -n "$grade" && "$grade" != "null" ]] || die "spec-runner-core: grade-history.json の current_grade が未設定です"
@@ -328,21 +330,31 @@ run_phase() {
     else
       phase=0; phase_name_ja="憲章策定"; resolve_step "charter"
     fi
-  elif [[ $has_domain_lock -eq 0 && ${uc_count_total} -gt 0 && $on_uc_branch -eq 0 ]]; then
-    domain_spec="$(first_md_in_dir "$domain_root" || true)"
-    if [[ -n "$domain_spec" ]]; then
-      feature_spec="$domain_spec"
-      feature_dir="$(dirname "$domain_spec")"
-      dkey="$(doc_key "$domain_spec")"
-      if ! quality_done "clarified" "domain" "$dkey"; then
-        phase=2; phase_name_ja="ドメイン設計（曖昧さ解消）"; resolve_step "clarify"
-      elif ! quality_done "analyzed" "domain" "$dkey"; then
-        phase=2; phase_name_ja="ドメイン設計（分析）"; resolve_step "analyze"
-      else
-        phase=2; phase_name_ja="ドメイン設計"; resolve_step "domain"
-      fi
+  elif [[ $has_domain_lock -eq 0 && $on_uc_branch -eq 0 ]]; then
+    # UC を洗い出している途中（uc_discovery.completed=false）の間はドメインへ進まない
+    if [[ $uc_discovery_completed -eq 0 ]]; then
+      phase=1; phase_name_ja="ユースケース洗い出し中（次UC作成）"; resolve_step "uc_spec"
     else
-      phase=2; phase_name_ja="ドメイン設計"; resolve_step "domain"
+      # UC が 1 件以上ある場合のみ、ドメイン側の質フローを回す
+      if [[ ${uc_count_total} -gt 0 ]]; then
+        domain_spec="$(first_md_in_dir "$domain_root" || true)"
+        if [[ -n "$domain_spec" ]]; then
+          feature_spec="$domain_spec"
+          feature_dir="$(dirname "$domain_spec")"
+          dkey="$(doc_key "$domain_spec")"
+          if ! quality_done "clarified" "domain" "$dkey"; then
+            phase=2; phase_name_ja="ドメイン設計（曖昧さ解消）"; resolve_step "clarify"
+          elif ! quality_done "analyzed" "domain" "$dkey"; then
+            phase=2; phase_name_ja="ドメイン設計（分析）"; resolve_step "analyze"
+          else
+            phase=2; phase_name_ja="ドメイン設計"; resolve_step "domain"
+          fi
+        else
+          phase=2; phase_name_ja="ドメイン設計"; resolve_step "domain"
+        fi
+      else
+        phase=1; phase_name_ja="ユースケース洗い出し中（次UC作成）"; resolve_step "uc_spec"
+      fi
     fi
   elif [[ $has_arch_lock -eq 0 && $has_domain_lock -eq 1 ]]; then
     arch_spec="$(first_md_in_dir "$architecture_root" || true)"
@@ -382,7 +394,10 @@ run_phase() {
           phase=1; phase_name_ja="ユースケース仕様（レビュー通過まで）"; resolve_step "clarify"
         fi
       else
-        if [[ "$grade" == "A" ]] && [[ $has_infra_lock -eq 0 ]]; then
+        # UC 洗い出し中は、レビュー済みでも次の UC 作成へ戻す（TDD/実装に進まない）
+        if [[ $uc_discovery_completed -eq 0 ]]; then
+          phase=1; phase_name_ja="ユースケース洗い出し中（次UC作成）"; resolve_step "uc_spec"
+        elif [[ "$grade" == "A" ]] && [[ $has_infra_lock -eq 0 ]]; then
           phase=4; phase_name_ja="インフラ詳細設計"; resolve_step "infra_plan"
         else
           if uc_branch_has_tests_ready_for_implement; then
@@ -429,7 +444,7 @@ run_status() {
   echo "グレード: $grade"
   echo ""
   echo "Lock（.spec-runner/phase-locks.json）:"
-  for sec in charter domain architecture infra test_design; do
+  for sec in charter domain architecture infra uc_discovery test_design; do
     if jq -e --arg s "$sec" '.[$s].completed == true' "$LOCK_FILE" >/dev/null 2>&1; then
       echo "  ✓ $sec"
     else

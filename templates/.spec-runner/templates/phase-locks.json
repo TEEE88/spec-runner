@@ -25,6 +25,11 @@
     "locked_at": null,
     "reviewed_by": null
   },
+  "uc_discovery": {
+    "completed": false,
+    "locked_at": null,
+    "reviewed_by": null
+  },
   "uc_reviewed": [],
   "quality": {
     "_comment": "clarify/analyze の実行済み管理（対象ドキュメントのベース名）",
