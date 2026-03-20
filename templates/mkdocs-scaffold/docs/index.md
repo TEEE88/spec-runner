@@ -13,7 +13,7 @@
 | インフラ設計 | `docs/05_インフラ設計/` |
 | API 仕様 | `docs/06_API仕様/` |
 
-手順・コマンド・ロックの考え方は **[spec-runner のフロー](spec-runner-フロー.md)** を参照してください（`npx spec-runner` 時にコピーされます）。
+手順・コマンド・ロックの考え方は、リポジトリの `docs/flow.md` を参照してください。
 
 ---
 
@@ -22,11 +22,11 @@
 リポジトリルートで次を実行します（Python 3 と `requirements-docs.txt` 用の仮想環境 `.venv-docs/` が使われます）。
 
 ```bash
-./.spec-runner/scripts/docs-serve.sh
+python3 -m venv .venv-docs && ./.venv-docs/bin/pip install -q -r requirements-docs.txt && ./.venv-docs/bin/mkdocs serve --dev-addr 127.0.0.1:8000
 ```
 
 `8000` 番が使用中の場合はポートを変えられます。
 
 ```bash
-DOCS_PORT=8001 ./.spec-runner/scripts/docs-serve.sh
+python3 -m venv .venv-docs && ./.venv-docs/bin/pip install -q -r requirements-docs.txt && ./.venv-docs/bin/mkdocs serve --dev-addr 127.0.0.1:8001
 ```

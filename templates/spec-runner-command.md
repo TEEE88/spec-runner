@@ -19,12 +19,11 @@ $ARGUMENTS
    ```bash
    .spec-runner/spec-runner.sh 次のステップ --json
    ```
-   出力は JSON で、少なくとも以下を含む:
+  出力は JSON で、少なくとも以下を含む:
    - `phase` — 現在フェーズ（0〜6）
    - `phase_name_ja` — フェーズ名（日本語）
    - `command` — 推奨ステップ名（例: テスト設計）
    - `command_file` — そのステップの .md の絶対パス（`.spec-runner/steps/` 配下）
-   - `grade` — 検出されたグレード（LOOP1 / A / B / C）
 
 2. **ステップを読み実行する**  
    - `command_file` で示されたファイル（例: `.spec-runner/steps/テスト設計.md`）を開いて読む。
@@ -37,6 +36,8 @@ $ARGUMENTS
 ## ルール
 
 - **spec-runner はこの 1 コマンドでよい。** 迷ったらこれを実行し、`command_file` の内容に従う。
-- `spec-runner.sh 次のステップ` は lock ファイル・ブランチ・グレードからフェーズを判定する。lock がまだ無ければ Phase 0（憲章）から始める。
+- `spec-runner.sh 次のステップ` は lock ファイルと成果物の有無から次フェーズを判定する。lock がまだ無ければ Phase 0（憲章）から始める。
 - ステップ内容は `.spec-runner/steps/` 配下にあり、spec-runner は現在フェーズ用のファイルを読み実行する。
+- **Work Card**: 常に `docs/work.md` を正本として更新する（目的・受入条件・実装タスク・検証結果）。
+- **Skills化（任意）**: 同じ作業が繰り返しになる場合、AI は次に進む前に Skills を提案する。テンプレートは `templates/skills/` 配下（`uc-k1-work-card-init`, `uc-k2-pre-commit-check`, `uc-k3-spec-impl-diff-review`）を優先し、必要なら `.claude/skills/<skill-name>/` に取り込んで使う。
 

@@ -1,9 +1,0 @@
-#!/bin/bash
-# spec-runner pre-push: main/develop への直接 push 禁止（Section 8-5）
-
-branch=$(git branch --show-current)
-if [[ "$branch" == "main" || "$branch" == "develop" ]]; then
-  echo "❌ main / develop への直接 push は禁止です。PR を作成してください"
-  exit 1
-fi
-exit 0

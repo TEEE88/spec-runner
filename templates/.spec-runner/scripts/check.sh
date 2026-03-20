@@ -41,14 +41,10 @@ run_steps_json_check() {
     "uc_spec"
     "domain"
     "architecture_plan"
-    "infra_plan"
     "test_design"
     "implement"
     "clarify"
     "analyze"
-    "checklist"
-    "task_list"
-    "other_work"
   )
 
   dup_ids=$(jq -r '.steps[]?.id // empty' "$sj" | sort | uniq -d || true)
@@ -94,29 +90,6 @@ run_steps_json_check() {
 run_naming_check() {
   local errors=0
 
-  # ブランチ名
-  local branch
-  branch=$(git branch --show-current 2>/dev/null || echo "")
-  if [[ -n "$branch" ]]; then
-    local pj valid bp uc_id_pat other_work
-    pj="$REPO_ROOT/.spec-runner/project.json"
-    [[ -f "$pj" ]] || { echo "NAMING: project.json がありません: $pj" >&2; return 1; }
-    command -v jq >/dev/null 2>&1 || { echo "NAMING: jq が必要です（brew install jq）" >&2; return 1; }
-    bp="$(jq -r '.naming.branch_prefix' "$pj")"
-    uc_id_pat="$(jq -r '.naming.uc_id_pattern' "$pj")"
-    other_work="$(jq -r '.naming.other_work_prefixes[] | . + "/.+"' "$pj" | tr '\n' '|' | sed 's/|$//')"
-    if [[ -z "$bp" || "$bp" == "null" || -z "$uc_id_pat" || "$uc_id_pat" == "null" || -z "$other_work" ]]; then
-      echo "NAMING: project.json の naming.branch_prefix / uc_id_pattern / other_work_prefixes が不正です" >&2
-      errors=$((errors+1))
-    else
-      valid="^(main|develop|${bp}/(${uc_id_pat}-.+|${other_work})|fix/${uc_id_pat}-.+|release/[0-9]+\\.[0-9]+\\.[0-9]+.*|hotfix/[0-9]+\\.[0-9]+\\.[0-9]+-.+)$"
-      if ! echo "$branch" | grep -qE "$valid"; then
-        echo "NAMING: ブランチ名「$branch」が規則違反" >&2
-        errors=$((errors+1))
-      fi
-    fi
-  fi
-
   # src フォルダ命名（存在する場合のみ）
   if [[ -d "src" ]]; then
     while IFS= read -r dir; do
@@ -130,7 +103,7 @@ run_naming_check() {
   fi
 
   if [[ $errors -eq 0 ]]; then
-    ok "✅ 命名規則チェック: 問題なし"
+    ok "✅ 命名規則チェック（src 配下フォルダ）: 問題なし"
     return 0
   else
     return 1
@@ -350,16 +323,7 @@ run_health_check() {
     fi
   fi
 
-  if [[ ! -f ".spec-runner/grade-history.json" ]]; then
-    drifts+=(".spec-runner/grade-history.json がありません")
-  elif command -v jq >/dev/null 2>&1; then
-    grade=$(jq -r '.current_grade' .spec-runner/grade-history.json)
-    [[ -n "$grade" && "$grade" != "null" ]] || drifts+=("grade-history.json の current_grade が未設定です")
-    if [[ "$grade" == "A" && "$current_phase" -ge 4 && "$is_quality_step" -eq 0 ]]; then
-      [[ ! -f "$INFRA_ROOT/schema.dbml" ]] && drifts+=("Grade A 必須: schema.dbml が存在しません")
-      schema_sync_check >/dev/null 2>&1 || drifts+=("Prisma と schema.dbml のテーブルが一致していません（スキーマ同期チェック）")
-    fi
-  fi
+  # grade ベースの強制は行わない（薄いオーケストレータ方針）
 
   if [[ "$current_phase" -ge 3 && "$is_quality_step" -eq 0 ]]; then
     [[ ! -f "$OPENAPI_PATH" ]] && drifts+=("openapi.yaml が存在しません")

@@ -19,7 +19,7 @@
   "test_design": {
     "dir": "tests",
     "pattern": "*.spec.*",
-    "require_uc_prefixed_tests": true
+    "require_uc_prefixed_tests": false
   },
   "test_command": {
     "run": "npm test"

@@ -1,5 +1,0 @@
-{
-  "_comment": "グレード履歴。インストール時に .spec-runner/grade-history.json へコピーされる（既にある場合はスキップ）。",
-  "current_grade": "LOOP1",
-  "history": []
-}

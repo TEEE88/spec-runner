@@ -18,12 +18,10 @@
  * 必須テンプレ（パッケージ内）:
  * - templates/.spec-runner/project.json.example
  * - templates/.spec-runner/templates/phase-locks.json
- * - templates/.spec-runner/templates/grade-history.json
  *
  * MkDocs（任意・プロジェクトルート）:
  * - templates/mkdocs-scaffold/ の mkdocs.yml / requirements-docs.txt / docs/index.md を
  *   未有効時のみコピー（憲章・設計書は既存の docs/01..06 をそのまま閲覧）
- * - パッケージ同梱の docs/flow.md を docs/spec-runner-フロー.md としてコピー（未存在時のみ）
  */
 
 const fs = require("fs");
@@ -35,15 +33,13 @@ const TEMPLATE_SPEC_RUNNER_DIR = path.join(PKG_DIR, "templates", ".spec-runner")
 const DEST_DIR = path.join(CWD, ".spec-runner");
 const TEMPLATES_DIR = path.join(TEMPLATE_SPEC_RUNNER_DIR, "templates");
 const PHASE_LOCKS_TEMPLATE = path.join(TEMPLATES_DIR, "phase-locks.json");
-const GRADE_HISTORY_TEMPLATE = path.join(TEMPLATES_DIR, "grade-history.json");
 const MKDOCS_SCAFFOLD_DIR = path.join(PKG_DIR, "templates", "mkdocs-scaffold");
-const FLOW_DOC_SRC = path.join(PKG_DIR, "docs", "flow.md");
+const SKILLS_TEMPLATE_DIR = path.join(PKG_DIR, "templates", "skills");
 
 /** コピー時はスキップし、FORCE 時は消さない（ユーザー状態を保持） */
 const USER_STATE_BASENAMES = new Set([
   "project.json",
   "phase-locks.json",
-  "grade-history.json",
 ]);
 
 function log(msg) {
@@ -82,10 +78,6 @@ function ensureTemplateDirOrExit() {
   }
   if (!exists(PHASE_LOCKS_TEMPLATE)) {
     error("必須テンプレ templates/phase-locks.json が見つかりません。");
-    process.exit(1);
-  }
-  if (!exists(GRADE_HISTORY_TEMPLATE)) {
-    error("必須テンプレ templates/grade-history.json が見つかりません。");
     process.exit(1);
   }
 }
@@ -154,17 +146,11 @@ function bootstrapProjectJson() {
  * フェーズ用 JSON は templates/.spec-runner/templates/*.json を正とする。
  * .spec-runner/ 直下に無いときだけコピー（既存のロックは上書きしない）。
  */
-function writeInitialLocksAndGrade() {
+function writeInitialLocks() {
   const locksDest = path.join(DEST_DIR, "phase-locks.json");
   if (!exists(locksDest)) {
     fs.copyFileSync(PHASE_LOCKS_TEMPLATE, locksDest);
     ok(path.relative(CWD, locksDest));
-  }
-
-  const gradeDest = path.join(DEST_DIR, "grade-history.json");
-  if (!exists(gradeDest)) {
-    fs.copyFileSync(GRADE_HISTORY_TEMPLATE, gradeDest);
-    ok(path.relative(CWD, gradeDest));
   }
 }
 
@@ -175,6 +161,30 @@ function installClaudeCommandIfPresent() {
   fs.mkdirSync(path.dirname(claudeCmd), { recursive: true });
   fs.writeFileSync(claudeCmd, fs.readFileSync(commandTmpl, "utf8"), "utf8");
   ok(path.relative(CWD, claudeCmd));
+}
+
+function installClaudeSkillsTemplatesIfPresent() {
+  if (!exists(SKILLS_TEMPLATE_DIR)) return;
+  const destRoot = path.join(CWD, ".claude", "skills");
+  info("Skills テンプレート（不足分のみ）を .claude/skills に配置します...");
+
+  function walk(srcDir, rel = "") {
+    for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
+      const srcPath = path.join(srcDir, entry.name);
+      const relPath = path.join(rel, entry.name);
+      const destPath = path.join(destRoot, relPath);
+      if (entry.isDirectory()) {
+        walk(srcPath, relPath);
+      } else {
+        if (exists(destPath)) continue;
+        fs.mkdirSync(path.dirname(destPath), { recursive: true });
+        fs.copyFileSync(srcPath, destPath);
+        ok(path.relative(CWD, destPath));
+      }
+    }
+  }
+
+  walk(SKILLS_TEMPLATE_DIR);
 }
 
 /**
@@ -222,9 +232,6 @@ function installMkdocsScaffold() {
     path.join(MKDOCS_SCAFFOLD_DIR, "docs", "index.md"),
     path.join(CWD, "docs", "index.md"),
   );
-  if (exists(FLOW_DOC_SRC)) {
-    copyFileIfMissing(FLOW_DOC_SRC, path.join(CWD, "docs", "spec-runner-フロー.md"));
-  }
   appendGitignoreVenvDocsIfNeeded();
 }
 
@@ -238,9 +245,6 @@ function printBanner() {
 }
 
 function printFooter() {
-  log("");
-  log("設計書プレビュー（MkDocs + Material・プロジェクトルートの docs/）:");
-  log("  ./.spec-runner/scripts/docs-serve.sh");
   log("");
   log("次のステップ（Claude Code 専用）:");
   log("  /spec-runner を実行して");
@@ -257,8 +261,9 @@ function main() {
   wipeDestExceptUserState();
   expandTemplateTree();
   bootstrapProjectJson();
-  writeInitialLocksAndGrade();
+  writeInitialLocks();
   installClaudeCommandIfPresent();
+  installClaudeSkillsTemplatesIfPresent();
   printFooter();
 }
 
