@@ -161,6 +161,8 @@ run_phase() {
   # lock が先に立っていても、設計成果物が無い場合は必ず設計フェーズへ戻す
   [[ $domain_spec_present -eq 0 ]] && has_domain_lock=0
   [[ $arch_spec_present -eq 0 ]] && has_arch_lock=0
+  # charter.completed が true でも、憲章成果物（docs/01_憲章/憲章.md）が無ければ Phase 0 に戻す
+  [[ $has_charter_lock -eq 1 && ! -f "$charter_doc" ]] && has_charter_lock=0
 
   if [[ $has_charter_lock -eq 0 ]]; then
     if [[ -f "$charter_doc" ]]; then

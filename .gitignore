@@ -5,3 +5,5 @@ node_modules/
 /.spec-runner/
 /.claude/
 /.cursor/
+# spec-runner: MkDocs 用 Python 仮想環境
+.venv-docs/
