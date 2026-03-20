@@ -1,6 +1,6 @@
 {
   "name": "spec-runner",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "description": "フェーズ駆動で設計先行を強制。npx で .spec-runner を展開し、次のステップ .md に従って進める",
   "license": "MIT",
   "bin": {

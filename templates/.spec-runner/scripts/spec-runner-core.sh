@@ -288,7 +288,11 @@ run_phase() {
     local kind="$1"   # clarified | analyzed
     local scope="$2"  # charter | domain | architecture | uc
     local key="$3"
-    jq -e --arg k "$key" --arg s "$scope" ".quality.${kind}[\$s][]? == \$k" "$LOCK_FILE" >/dev/null 2>&1
+    # 互換性のため、quality には「ベース名」と「.md 付き」の両方を許容する
+    local key_md="${key}.md"
+    jq -e --arg k "$key" --arg km "$key_md" --arg s "$scope" \
+      ".quality.${kind}[\$s][]? | select(. == \$k or . == \$km)" \
+      "$LOCK_FILE" >/dev/null 2>&1
   }
 
   resolve_step() {
