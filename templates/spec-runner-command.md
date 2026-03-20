@@ -31,7 +31,9 @@ $ARGUMENTS
 
 3. **結果を報告する**  
    - 実行したフェーズを簡潔に報告する。
-   - 各ステップ末尾のとおり、**このコマンド（spec-runner）を再度実行**して次のステップに進む。
+   - 次ステップが同一フェーズのまま（例: Phase 0 継続）の場合は、**再実行指示だけで終わらせない**。`phase-locks.json` / quality 状態を確認し、**未達条件（何が足りないか）**を 1-3 点で明示する。
+   - そのうえで、ユーザーが今すぐできる**次アクション**を具体的に提示する（例: 「`charter.completed` を true にする」「`quality.clarified.charter` を満たす更新を入れる」）。
+   - 未達条件が解消した後に、**このコマンド（spec-runner）を再実行**して次へ進む。
 
 ## ルール
 
@@ -40,4 +42,5 @@ $ARGUMENTS
 - ステップ内容は `.spec-runner/steps/` 配下にあり、spec-runner は現在フェーズ用のファイルを読み実行する。
 - **Work Card**: 常に `docs/work.md` を正本として更新する（目的・受入条件・実装タスク・検証結果）。
 - **Skills化（任意）**: 同じ作業が繰り返しになる場合、AI は次に進む前に Skills を提案する。テンプレートは `templates/skills/` 配下（`uc-k1-work-card-init`, `uc-k2-pre-commit-check`, `uc-k3-spec-impl-diff-review`）を優先し、必要なら `.claude/skills/<skill-name>/` に取り込んで使う。
+- **報告フォーマット（必須）**: 報告の最後に、必ず「次のアクション」を **1〜3 件**提示する。形式は **A/B（必要ならC）** とし、各案は「今やる操作」と「期待結果」を1行で書く。
 
