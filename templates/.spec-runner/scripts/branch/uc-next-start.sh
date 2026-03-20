@@ -49,12 +49,13 @@ BRANCH_PREFIX="$(jq -r '.naming.branch_prefix' "$PROJECT_JSON")"
   exit 1
 }
 
-# 憲章の未コミット変更がある状態では UC 開始を止める（運用: 憲章完成後に先にコミット）
+# 憲章の未コミット変更があれば、AI によるレビュー付きコミットを先に行う
 CHARTER_DOC="$REPO_ROOT/docs/01_憲章/憲章.md"
 if [[ -f "$CHARTER_DOC" ]]; then
   if [[ -n "$(git status --porcelain -- "$CHARTER_DOC")" ]]; then
     echo "Error: 憲章に未コミット変更があります: $CHARTER_DOC" >&2
-    echo "       先に main で憲章をコミットしてから UC ブランチ作成を実行してください。" >&2
+    echo "       先に AI に差分を確認させ、適切なコミットメッセージでコミットしてください。" >&2
+    echo "       その後に uc-next-start.sh を再実行してください。" >&2
     exit 1
   fi
 fi
