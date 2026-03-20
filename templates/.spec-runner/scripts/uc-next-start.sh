@@ -45,11 +45,12 @@ UC_ID_RE="$(jq -r '.naming.uc_id_pattern' "$PROJECT_JSON")"
   exit 1
 }
 
-next_uc_id() {
-  local dir="$REPO_ROOT/docs/02_ユースケース仕様"
+next_uc_id_for_category() {
+  local category="$1"
+  local dir="$REPO_ROOT/docs/02_ユースケース仕様/${category}"
   mkdir -p "$dir"
   local max=0
-  for f in "$dir"/*/UC-*.md; do
+  for f in "$dir"/UC-*.md; do
     [[ -e "$f" ]] || continue
     base=$(basename "$f" .md)
     if [[ "$base" =~ ^(${UC_ID_RE})- ]]; then
@@ -63,7 +64,8 @@ next_uc_id() {
   printf "UC-%d\n" $((max + 1))
 }
 
-NEXT_UC="$(next_uc_id)"
+NEXT_UC=""
+UC_ID_EXPLICIT=0
 SLUG=""
 TITLE=""
 CATEGORY=""
@@ -74,6 +76,7 @@ if [[ ${#ARGS[@]} -ge 1 ]] && [[ "${ARGS[0]}" =~ ^${UC_ID_RE}$ ]]; then
     exit 1
   }
   NEXT_UC="${ARGS[0]}"
+  UC_ID_EXPLICIT=1
   SLUG="${ARGS[1]}"
   TITLE="${ARGS[2]}"
   CATEGORY="${ARGS[3]}"
@@ -111,6 +114,10 @@ CATEGORY=$(echo "$CATEGORY" | sed 's/[\\\/:\*\?"<>|]//g' | sed 's/[[:cntrl:]]//g
 if [[ -z "$CATEGORY" ]]; then
   echo "Error: CATEGORY は空にできません。" >&2
   exit 1
+fi
+
+if [[ $UC_ID_EXPLICIT -eq 0 ]]; then
+  NEXT_UC="$(next_uc_id_for_category "$CATEGORY")"
 fi
 
 FEATURE_DIR="docs/02_ユースケース仕様/${CATEGORY}"
