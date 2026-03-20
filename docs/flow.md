@@ -49,6 +49,7 @@
    - 全 UC レビュー済みなら `domain`（必要に応じ `clarify` / `analyze`）
 4. `architecture.completed` が false  
    - `architecture_plan`（必要に応じ `clarify` / `analyze`）
+   - lock が true でも、設計成果物（`docs/03` / `docs/04` の `.md`）が無い場合は該当設計フェーズに戻る
 5. 最新 UC がレビュー済みかつテスト準備済み  
    - `implement`  
    それ以外は `test_design`

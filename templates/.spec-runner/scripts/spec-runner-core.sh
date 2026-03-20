@@ -143,6 +143,8 @@ run_phase() {
   charter_doc="$(get_steps_common_doc "charter")"
   domain_root="$(get_steps_common_doc "domain_root")"
   architecture_root="$(get_steps_common_doc "architecture_root")"
+  domain_spec_present=0
+  arch_spec_present=0
 
   doc_key() { basename "$1" .md; }
   first_md_in_dir() {
@@ -153,6 +155,12 @@ run_phase() {
 
   uc_count_total=$(find docs/02_ユースケース仕様 -mindepth 2 -maxdepth 2 -name "UC-*.md" 2>/dev/null | wc -l | tr -d ' ')
   uc_count_total=${uc_count_total:-0}
+  [[ -n "$(first_md_in_dir "$domain_root" || true)" ]] && domain_spec_present=1
+  [[ -n "$(first_md_in_dir "$architecture_root" || true)" ]] && arch_spec_present=1
+
+  # lock が先に立っていても、設計成果物が無い場合は必ず設計フェーズへ戻す
+  [[ $domain_spec_present -eq 0 ]] && has_domain_lock=0
+  [[ $arch_spec_present -eq 0 ]] && has_arch_lock=0
 
   if [[ $has_charter_lock -eq 0 ]]; then
     if [[ -f "$charter_doc" ]]; then
