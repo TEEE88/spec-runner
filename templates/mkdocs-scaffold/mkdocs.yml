@@ -1,0 +1,16 @@
+site_name: プロジェクト設計ドキュメント
+site_description: 憲章・ユースケース・ドメイン・アーキテクチャ等（spec-runner の docs/ 配下を閲覧）
+theme:
+  name: material
+  language: ja
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+# 「ホーム」を先頭に固定し、それ以外の Markdown（01_憲章 … など）は MkDocs が自動でナビに追加
+nav:
+  - ホーム: index.md

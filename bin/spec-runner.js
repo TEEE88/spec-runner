@@ -19,6 +19,11 @@
  * - templates/.spec-runner/project.json.example
  * - templates/.spec-runner/templates/phase-locks.json
  * - templates/.spec-runner/templates/grade-history.json
+ *
+ * MkDocs（任意・プロジェクトルート）:
+ * - templates/mkdocs-scaffold/ の mkdocs.yml / requirements-docs.txt / docs/index.md を
+ *   未有効時のみコピー（憲章・設計書は既存の docs/01..06 をそのまま閲覧）
+ * - パッケージ同梱の docs/flow.md を docs/spec-runner-フロー.md としてコピー（未存在時のみ）
  */
 
 const fs = require("fs");
@@ -31,6 +36,8 @@ const DEST_DIR = path.join(CWD, ".spec-runner");
 const TEMPLATES_DIR = path.join(TEMPLATE_SPEC_RUNNER_DIR, "templates");
 const PHASE_LOCKS_TEMPLATE = path.join(TEMPLATES_DIR, "phase-locks.json");
 const GRADE_HISTORY_TEMPLATE = path.join(TEMPLATES_DIR, "grade-history.json");
+const MKDOCS_SCAFFOLD_DIR = path.join(PKG_DIR, "templates", "mkdocs-scaffold");
+const FLOW_DOC_SRC = path.join(PKG_DIR, "docs", "flow.md");
 
 /** コピー時はスキップし、FORCE 時は消さない（ユーザー状態を保持） */
 const USER_STATE_BASENAMES = new Set([
@@ -170,6 +177,57 @@ function installClaudeCommandIfPresent() {
   ok(path.relative(CWD, claudeCmd));
 }
 
+/**
+ * MkDocs + Material 用のファイルをプロジェクトルートに配置（未存在時のみ）。
+ * 設計書本体は steps.json どおり docs/01..06 に置かれ、mkdocs の docs_dir でそのまま掲載する。
+ */
+function copyFileIfMissing(src, dest) {
+  if (!exists(src) || exists(dest)) return false;
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.copyFileSync(src, dest);
+  ok(path.relative(CWD, dest));
+  return true;
+}
+
+function appendGitignoreVenvDocsIfNeeded() {
+  const gitignorePath = path.join(CWD, ".gitignore");
+  const marker = ".venv-docs/";
+  if (!exists(gitignorePath)) return;
+  const raw = fs.readFileSync(gitignorePath, "utf8");
+  const lines = raw.split(/\r?\n/);
+  if (lines.some((line) => /^\.venv-docs\/?$/.test(line.trim()))) return;
+  fs.appendFileSync(
+    gitignorePath,
+    `\n# spec-runner: MkDocs 用 Python 仮想環境\n${marker}\n`,
+    "utf8",
+  );
+  ok(`${path.relative(CWD, gitignorePath)}（${marker} を追記）`);
+}
+
+function installMkdocsScaffold() {
+  if (!exists(MKDOCS_SCAFFOLD_DIR)) {
+    info("MkDocs テンプレート（templates/mkdocs-scaffold）が見つかりません。スキップします。");
+    return;
+  }
+  info("MkDocs 用ファイル（不足分のみ）をプロジェクトルートに配置します...");
+  copyFileIfMissing(
+    path.join(MKDOCS_SCAFFOLD_DIR, "mkdocs.yml"),
+    path.join(CWD, "mkdocs.yml"),
+  );
+  copyFileIfMissing(
+    path.join(MKDOCS_SCAFFOLD_DIR, "requirements-docs.txt"),
+    path.join(CWD, "requirements-docs.txt"),
+  );
+  copyFileIfMissing(
+    path.join(MKDOCS_SCAFFOLD_DIR, "docs", "index.md"),
+    path.join(CWD, "docs", "index.md"),
+  );
+  if (exists(FLOW_DOC_SRC)) {
+    copyFileIfMissing(FLOW_DOC_SRC, path.join(CWD, "docs", "spec-runner-フロー.md"));
+  }
+  appendGitignoreVenvDocsIfNeeded();
+}
+
 function printBanner() {
   log("");
   log("╔════════════════════════════════════════╗");
@@ -181,6 +239,9 @@ function printBanner() {
 
 function printFooter() {
   log("");
+  log("設計書プレビュー（MkDocs + Material・プロジェクトルートの docs/）:");
+  log("  ./.spec-runner/scripts/docs-serve.sh");
+  log("");
   log("次のステップ（Claude Code 専用）:");
   log("  /spec-runner を実行して");
   log("");
@@ -189,6 +250,7 @@ function printFooter() {
 function main() {
   printBanner();
   ensureTemplateDirOrExit();
+  installMkdocsScaffold();
   assertDestInstallableOrExit();
 
   info(".spec-runner/ を展開しています...");
