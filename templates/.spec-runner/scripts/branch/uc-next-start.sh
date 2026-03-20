@@ -18,6 +18,11 @@ REPO_ROOT="${REPO_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
 cd "$REPO_ROOT"
 BRANCH_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# Git 未初期化ワークスペースでは最小構成で初期化する（main を既定化）
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git init -b main >/dev/null 2>&1 || git init >/dev/null 2>&1
+fi
+
 YES_MODE=false
 ARGS=()
 for a in "$@"; do
@@ -43,6 +48,16 @@ BRANCH_PREFIX="$(jq -r '.naming.branch_prefix' "$PROJECT_JSON")"
   echo "uc-next-start: project.json の naming.uc_id_pattern / branch_prefix が未設定です" >&2
   exit 1
 }
+
+# 憲章の未コミット変更がある状態では UC 開始を止める（運用: 憲章完成後に先にコミット）
+CHARTER_DOC="$REPO_ROOT/docs/01_憲章/憲章.md"
+if [[ -f "$CHARTER_DOC" ]]; then
+  if [[ -n "$(git status --porcelain -- "$CHARTER_DOC")" ]]; then
+    echo "Error: 憲章に未コミット変更があります: $CHARTER_DOC" >&2
+    echo "       先に main で憲章をコミットしてから UC ブランチ作成を実行してください。" >&2
+    exit 1
+  fi
+fi
 
 next_uc_id() {
   # docs/02_ユースケース仕様/<カテゴリ>/UC-*.md から次に使う UC-N を返す
@@ -158,8 +173,20 @@ if [[ "$YES_MODE" != true ]]; then
   esac
 fi
 
-git checkout "$MAIN_BRANCH"
-git pull --ff-only 2>/dev/null || true
+# 初回コミット前（unborn HEAD）は checkout main が失敗し得るためフォールバックする
+if git rev-parse --verify HEAD >/dev/null 2>&1; then
+  git checkout "$MAIN_BRANCH"
+  git pull --ff-only 2>/dev/null || true
+else
+  CURRENT_HEAD="$(git symbolic-ref --short -q HEAD 2>/dev/null || echo "")"
+  if [[ -z "$MAIN_BRANCH" ]]; then
+    MAIN_BRANCH="${CURRENT_HEAD:-main}"
+  fi
+  if [[ "$CURRENT_HEAD" != "$MAIN_BRANCH" ]]; then
+    git checkout -b "$MAIN_BRANCH" >/dev/null 2>&1 || true
+  fi
+  echo "Info: 初回コミット前のため pull はスキップします。"
+fi
 
 # ブランチ作成 + UC 仕様書作成（統合）
 UC_ID_PATTERN="^${UC_ID_RE}$"
