@@ -1,8 +1,12 @@
 # spec-runner
 
-フェーズ駆動で設計を飛ばさないようにする仕組み。`npx spec-runner` でプロジェクトに `.spec-runner/` を入れ、**次のステップ** を 1 本だけ返すコマンドに従って進める。
+AI は設計を飛ばして実装に走る。`docs/` があっても読まないし、仕様が曖昧なまま動くコードを返す。
 
----
+`spec-runner` はそれを防ぐ。**`docs/` を正本にした開発フロー**を AI に守らせるための rules / agents / skills を、**Claude Code（`.claude/`）** と **GitHub Copilot（`.github/`）** にインストーラ一発で配る。
+
+フローは `要件定義 → 概要設計 → 詳細設計 → TDD → 実装`。AI はこの順序で docs を読み書きしながら進み、設計なしに実装フェーズへ進めない。
+
+インストール後は `architecture-skill-development` を使ってプロジェクトのアーキテクチャを定義し、そこから **プロジェクト専用 skill** を生やす。汎用 skill はその土台にすぎない。
 
 ## インストール
 
@@ -16,114 +20,88 @@ npx spec-runner
 curl -sSL https://raw.githubusercontent.com/TEEE88/spec-runner/main/install.sh | bash
 ```
 
-いずれも、プロジェクト直下に `.spec-runner/` ができる。
+実行時に **Claude / Copilot / 両方** を選ぶ。既存ファイルは原則上書きしない。
 
-あわせて、**未有効時のみ**プロジェクトルートに次が配置される（Material for MkDocs で `docs/` 配下の設計書をプレビューするため）。
+## 導入されるもの
 
-- `mkdocs.yml` / `requirements-docs.txt`
-- `docs/index.md`（サイトのホーム）
+### Claude を選んだ場合
 
-`.spec-runner/` がすでにあり **2 回目以降はエラーで止まる** 場合も、**その手前**で上記 MkDocs 用ファイルの不足分だけ補完される（初回導入以前のリポジトリで MkDocs だけ足したいときに便利）。
-
----
-
-## 使い方
-
-1. プロジェクトルートで次を実行する。
-
-   ```bash
-   ./.spec-runner/spec-runner.sh 次のステップ --json
-   ```
-
-2. 出力の `command_file` に書いてある `.spec-runner/steps/*.md` を開き、その指示に従って作業する。
-
-3. 作業が終わったら、再度 1 を実行する。次のステップが返る。
-
-AI から使う場合は、`/spec-runner` のように「spec-runner を実行する」と伝えればよい。フェーズやコマンド名を覚える必要はない。
-
-**Git**: フェーズごとにブランチを切る必要はない。**コミットしたくなったとき**に、AI と `project.json` の命名に沿ってブランチ名・メッセージを相談し、一緒にコミットする運用でよい（詳細は同梱の `docs/flow.md` と `.spec-runner/steps/仕様策定.md`）。
-
----
-
-## フロー（全体像）
-
-設計書（`docs/01..06`）と UC 仕様（`docs/02_ユースケース仕様/`）をどんな順で作っていくかは `docs/flow.md` にまとめています。
-
-## Skills テンプレート（任意）
-
-- `templates/skills/uc-k1-work-card-init/SKILL.md`（`docs/work.md` 初期化）
-- `templates/skills/uc-k2-pre-commit-check/SKILL.md`（コミット前チェック案内）
-- `templates/skills/uc-k3-spec-impl-diff-review/SKILL.md`（仕様-実装差分レビュー）
-- `npx spec-runner` 実行時に、不足分のみ `.claude/skills/` へ自動コピーされます（既存ファイルは上書きしない）。
-
----
-
-## ドキュメントサイト（MkDocs + Material）
-
-### `npx spec-runner` したプロジェクト側
-
-憲章・設計書は `steps.json` どおり `docs/01_憲章/` 〜 `docs/06_API仕様/` に置かれる。`mkdocs.yml` の `docs/` がそのままサイトの文書ルートになるので、**追加コピーなしで**これらの Markdown をナビに載せられる（`nav` で先頭に固定した `index.md` の後ろへ、残りのページが自動で続く）。
-
-プレビュー起動（Python 3 必須・仮想環境 `.venv-docs/` を使用）:
-
-```bash
-python3 -m venv .venv-docs && ./.venv-docs/bin/pip install -q -r requirements-docs.txt && ./.venv-docs/bin/mkdocs serve --dev-addr 127.0.0.1:8000
+```text
+<project-root>/
+└── .claude/
+    ├── agents/
+    ├── rules/
+    └── skills/
 ```
 
-`8000` が使用中のとき:
+### Copilot を選んだ場合
 
-```bash
-python3 -m venv .venv-docs && ./.venv-docs/bin/pip install -q -r requirements-docs.txt && ./.venv-docs/bin/mkdocs serve --dev-addr 127.0.0.1:8001
+```text
+<project-root>/
+└── .github/
+    ├── instructions/
+    ├── agents/
+    └── skills/
 ```
 
-## 導入後にできるもの
+### 同梱するベース skill
 
-```
-<プロジェクトルート>/
-├── .spec-runner/
-│   ├── spec-runner.sh          # 入口（次のステップ --json）
-│   ├── project.json            # 設定（ブランチ命名・必須ドキュメント・テストコマンド等）
-│   ├── phase-locks.json        # フェーズの通過状態
-│   ├── scripts/                # spec-runner-core.sh, check, branch 等
-│   ├── steps/                  # 憲章・ドメイン設計・仕様策定・曖昧さ解消・テスト設計・実装 等の .md
-│   └── templates/              # UC 仕様書ひな形
-├── .claude/commands/spec-runner.md   # Claude 用コマンド定義（/spec-runner）
-├── .claude/skills/                   # Skills テンプレート（不足分のみ自動配置）
-├── mkdocs.yml                 # MkDocs（未有効時のみ配置）
-├── requirements-docs.txt      # mkdocs / mkdocs-material（未有効時のみ配置）
-├── docs/                      # 設計書（01..06）＋ work.md ＋ index.md 等。MkDocs の文書ルート
-└── （AI は Claude Code 前提）
-```
+**セットアップ用**（プロジェクト初期に使い、完了後はアーカイブする）
 
----
+- `architecture-definition`: 新規プロジェクトで docs と architecture contract を起こす
+- `existing-project-to-docs`: 既存コードから docs の draft と構造化情報を起こす
+- `architecture-skill-development`: architecture contract から project 専用 skill を育てる
+- `docs-driven-seed`: DDD 向けの project 専用 skill の種（`style: ddd` のとき）
+- `simple-seed`: レイヤードアーキテクチャ向けの project 専用 skill の種（`style: layered` のとき）
 
-## 必要環境
+**開発ループ用**（日常的に使う）
 
-- Node.js 16+
-- jq
-- git
-- bash 4.0+
-- 設計書の MkDocs プレビュー: Python 3（venv + mkdocs コマンドを直接実行）
+- `design-change`: 変更要求に対して影響調査 → ADR → 設計修正 → TDD で進める
+- `test-driven-development`: アプリケーションコード向けの TDD を徹底する
+- `harness-engineering`: rules / agents / skills / templates 自体を改善する
+- `commit`: コミットメッセージの生成とコミット実行
 
----
+`docs/` の中身は、導入後にこれらの skill を使ってプロジェクトごとに作る。
+
+## 推奨フロー
+
+### 新規プロジェクト
+
+1. `architecture-definition`
+2. `architecture-skill-development`
+3. 生成された project 専用 skill
+4. `test-driven-development`
+
+### 既存プロジェクト
+
+1. `existing-project-to-docs`
+2. `architecture-skill-development`
+3. `design-change`
+4. `test-driven-development`
 
 ## 上書きインストール
 
-すでに `.spec-runner/` があるときは上書きしない。上書きしたい場合:
+差分がある既存ファイルも置換したい場合:
 
 ```bash
 SPEC_RUNNER_FORCE=1 npx spec-runner
 ```
 
----
+この場合、差分がある既存ファイルは `.spec-runner/archive/<timestamp>/...` に退避してから置換される。
+
+## 必要環境
+
+- Node.js 16+
+
+## テンプレートの場所
+
+- `spec-runner/templates/.claude/`
+- `spec-runner/templates/.github/`
 
 ## バージョン運用ルール
 
-- このリポジトリでは、今後 **コミットごとに `package.json` の `version` を更新**する。
-- バージョンは原則として SemVer に従い、迷う場合はパッチ（`x.y.Z`）を 1 つ上げる。
-- 1コミット内で複数の変更をまとめた場合も、コミット単位で 1 回だけ更新する。
-
----
+- **開発のたびに `package.json` の `version` を更新してからコミットする**
+- バージョンは原則 SemVer に従い、迷う場合はパッチを 1 つ上げる
 
 ## ライセンス
 

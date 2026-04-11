@@ -1,10 +1,10 @@
 {
   "name": "spec-runner",
-  "version": "1.1.7",
-  "description": "フェーズ駆動で設計先行を強制。npx で .spec-runner を展開し、次のステップ .md に従って進める",
+  "version": "1.5.0",
+  "description": "docs を正本にした開発運用ハーネスを Claude / Copilot に導入する",
   "license": "MIT",
   "bin": {
-    "spec-runner": "bin/spec-runner.js"
+    "spec-runner": "bin/spec-runner-installer.js"
   },
   "engines": {
     "node": ">=16.0.0"
@@ -20,13 +20,13 @@
     "rails",
     "django",
     "nextjs",
-    "spec-kit"
+    "docs-as-code",
+    "architecture-driven"
   ],
   "scripts": {},
   "files": [
+    "spec-runner/",
     "bin/",
-    "templates/",
-    "docs/flow.md",
     "install.sh",
     "README.md",
     "LICENSE"

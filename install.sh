@@ -24,7 +24,7 @@ die()  { echo -e "${RED}ERROR:${NC} $*" >&2; exit 1; }
 echo ""
 echo -e "${BOLD}╔════════════════════════════════════════╗${NC}"
 echo -e "${BOLD}║       spec-runner インストーラ        ║${NC}"
-echo -e "${BOLD}║     フェーズ駆動 / 次のステップ方式     ║${NC}"
+echo -e "${BOLD}║   docs正本 / 設計駆動ハーネス導入    ║${NC}"
 echo -e "${BOLD}╚════════════════════════════════════════╝${NC}"
 echo ""
 
