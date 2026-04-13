@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>spec-runner — Terminal Edition</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --green: #00ff41;
+    --green-dim: #00b32c;
+    --green-dark: #003b0e;
+    --amber: #ffb300;
+    --red: #ff3b3b;
+    --text: #c8ffc8;
+    --muted: #4d7a4d;
+    --border: #1a3d1a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace;
+    overflow: hidden;
+  }
+
+  /* CRT scanline effect */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  #deck {
+    position: relative;
+    width: 960px;
+    height: 540px;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    border: 1px solid var(--green-dim);
+    border-radius: 4px;
+    padding: 48px 56px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+    box-shadow: 0 0 40px rgba(0,255,65,0.05), inset 0 0 60px rgba(0,0,0,0.5);
+  }
+  .slide.active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .slide.exit {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  /* Prompt line */
+  .prompt {
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 28px;
+    letter-spacing: 0.05em;
+  }
+  .prompt .cursor {
+    display: inline-block;
+    width: 8px;
+    height: 14px;
+    background: var(--green);
+    vertical-align: middle;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  h1 {
+    font-size: 64px;
+    font-weight: 400;
+    color: var(--green);
+    text-shadow: 0 0 20px rgba(0,255,65,0.5);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  h2 {
+    font-size: 32px;
+    font-weight: 400;
+    color: var(--green);
+    margin-bottom: 24px;
+    text-shadow: 0 0 10px rgba(0,255,65,0.3);
+  }
+  .sub {
+    color: var(--muted);
+    font-size: 16px;
+    margin-top: 16px;
+    line-height: 1.6;
+  }
+  p {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  p strong { color: var(--green); }
+
+  pre {
+    background: #000;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green-dim);
+    padding: 16px 20px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  .err { color: var(--red); }
+  .ok  { color: var(--green); }
+  .warn { color: var(--amber); }
+  .dim  { color: var(--muted); }
+  .hi   { color: var(--green); text-shadow: 0 0 8px rgba(0,255,65,0.4); }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+
+  .box {
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--green-dim);
+    padding: 16px 20px;
+    background: rgba(0,255,65,0.02);
+  }
+  .box-title {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--green-dim);
+    margin-bottom: 10px;
+  }
+  .box ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .box li { font-size: 13px; color: var(--text); padding-left: 16px; position: relative; }
+  .box li::before { content: '>'; position: absolute; left: 0; color: var(--green-dim); }
+
+  .era-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .era {
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+  }
+  .era.now {
+    border-color: var(--green-dim);
+    background: rgba(0,255,65,0.03);
+  }
+  .era-num { font-size: 10px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.1em; }
+  .era h3 { font-size: 13px; color: var(--green); margin-bottom: 6px; font-weight: 400; }
+  .era .verdict { font-size: 12px; margin-top: 10px; padding: 4px 8px; display: inline-block; }
+  .era .verdict.fail { color: var(--red); border: 1px solid rgba(255,59,59,0.3); }
+  .era .verdict.pass { color: var(--green); border: 1px solid rgba(0,255,65,0.3); }
+
+  .mech { display: flex; flex-direction: column; gap: 8px; }
+  .mech-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(0,0,0,0.4);
+    border-left: 2px solid var(--green-dim);
+  }
+  .mech-key {
+    font-size: 12px;
+    color: var(--green);
+    min-width: 160px;
+    flex-shrink: 0;
+  }
+  .mech-val { font-size: 13px; color: var(--text); line-height: 1.5; }
+
+  .big-line {
+    font-size: 22px;
+    color: var(--green);
+    margin: 16px 0;
+    text-shadow: 0 0 10px rgba(0,255,65,0.3);
+    line-height: 1.5;
+  }
+
+  /* progress */
+  #controls {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  #progress { display: flex; gap: 8px; }
+  .dot {
+    width: 18px;
+    height: 4px;
+    background: var(--border);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .dot.active { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  #counter { font-size: 11px; color: var(--muted); font-family: monospace; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+  <!-- 01 -->
+  <div class="slide active">
+    <div class="prompt">$ npx spec-runner init <span class="cursor"></span></div>
+    <h1>spec-runner</h1>
+    <div class="sub">整合性駆動開発ハーネス</div>
+    <div class="sub" style="margin-top:24px; font-size:13px;">
+      <span class="ok">✓</span> Claude Code 対応 &nbsp;&nbsp;
+      <span class="ok">✓</span> GitHub Copilot 対応 &nbsp;&nbsp;
+      <span class="ok">✓</span> プロジェクト専用スキル生成
+    </div>
+  </div>
+
+  <!-- 02 -->
+  <div class="slide">
+    <div class="prompt">$ git log --oneline docs/ # 最近コミットした？</div>
+    <h2>AI がコードを速く書く。設計書が腐る。</h2>
+    <pre>
+<span class="ok">feat:</span> ユーザー認証を実装                    <span class="dim">← コードは進む</span>
+<span class="warn">docs:</span> 設計書 <span class="warn">（更新忘れ）</span>                <span class="dim">← 設計書は止まる</span>
+<span class="ok">feat:</span> 決済フローを実装                      <span class="dim">← コードはさらに進む</span>
+<span class="warn">docs:</span> 設計書 <span class="warn">（もう追えない）</span>             <span class="dim">← 乖離が拡大</span>
+<span class="err">???:</span>  次の AI が設計書を無視してコードを読む   <span class="err">← ループ開始</span>
+</pre>
+    <p style="margin-top:20px;">設計書が腐ると、次の AI はコードから推測し始める。<strong>正のフィードバックループが加速する。</strong></p>
+  </div>
+
+  <!-- 03 -->
+  <div class="slide">
+    <div class="prompt">$ cat concept.txt</div>
+    <h2>整合性駆動開発</h2>
+    <pre style="font-size:15px; line-height:2;">
+<span class="hi">「設計書とコードが常に一致していること」</span>
+<span class="hi">を不変条件として維持する開発手法</span>
+</pre>
+    <pre style="margin-top:16px;">
+<span class="dim"># docs 正本（先に書く）は手段。目的は整合性の維持。</span>
+<span class="dim"># 整合性が保たれていれば AI は安全に実装できる。</span>
+<span class="dim"># 崩れた瞬間、AI は推測で動き始める。</span>
+
+<span class="ok">spec-runner</span> = この不変条件を機械的に強制するハーネス
+</pre>
+  </div>
+
+  <!-- 04 -->
+  <div class="slide">
+    <div class="prompt">$ cat enforcement.yaml</div>
+    <h2>不変条件の強制機構</h2>
+    <div class="mech">
+      <div class="mech-row"><span class="mech-key"><span class="ok">maps_to</span> frontmatter</span><span class="mech-val">設計書とコードの対応を宣言する。パス推測禁止</span></div>
+      <div class="mech-row"><span class="mech-key"><span class="ok">scan.js</span> + hooks</span><span class="mech-val">Edit/Write のたびに <code style="color:var(--green);">maps_to</code> の実在を検証。なければ exit 1</span></div>
+      <div class="mech-row"><span class="mech-key"><span class="ok">@design-reviewer</span></span><span class="mech-val">責務・入出力・テスト観点の意味的整合をエージェントが検証</span></div>
+      <div class="mech-row"><span class="mech-key"><span class="ok">design-change</span></span><span class="mech-val">フェーズゲートでコードを先に変えることを構造的に防ぐ</span></div>
+      <div class="mech-row"><span class="mech-key"><span class="ok">depends_on</span></span><span class="mech-val">変更の波及範囲を設計書の依存関係として宣言する</span></div>
+    </div>
+  </div>
+
+  <!-- 05 frontmatter -->
+  <div class="slide">
+    <div class="prompt">$ head -10 docs/03_詳細設計/src/agents/reconciliation/agent.md</div>
+    <div class="cols">
+      <pre style="font-size:13px; line-height:1.8;">
+<span class="dim">---</span>
+<span class="ok">spec_runner</span><span class="dim">:</span>
+  <span class="warn">node_id</span><span class="dim">:</span> detail.src.agents.reconciliation.agent
+  <span class="warn">kind</span><span class="dim">:</span> detailed_design
+  <span class="warn">depends_on</span><span class="dim">:</span>
+    - overview.system_context
+  <span class="warn">maps_to</span><span class="dim">:</span>
+    - src/agents/reconciliation/agent.py
+    - tests/agents/reconciliation/test_agent.py
+<span class="dim">---</span>
+</pre>
+      <div>
+        <div class="box" style="margin-bottom:12px;">
+          <div class="box-title">maps_to が宣言されると</div>
+          <ul>
+            <li>scan.js が実在を検証する</li>
+            <li>存在しないパス → exit 1</li>
+            <li>設計書の腐敗を即検知</li>
+          </ul>
+        </div>
+        <div class="box">
+          <div class="box-title">depends_on が宣言されると</div>
+          <ul>
+            <li>graph.json に reverse_index</li>
+            <li>design-change で波及範囲を辿る</li>
+            <li>変更の影響漏れを防ぐ</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 06 Why project-specific -->
+  <div class="slide">
+    <div class="prompt">$ diff ddd-project.yaml crud-project.yaml</div>
+    <h2>なぜプロジェクト専用スキルか</h2>
+    <div class="cols">
+      <pre>
+<span class="dim"># DDD プロジェクト</span>
+design_unit: aggregate
+propagation:
+  - domain
+  - usecase
+  - db
+test_granularity: domain_logic
+</pre>
+      <pre>
+<span class="dim"># CRUD プロジェクト</span>
+design_unit: usecase
+propagation:
+  - usecase
+  - db
+test_granularity: usecase
+</pre>
+    </div>
+    <p style="margin-top:20px;"><span class="err">汎用スキルはアーキテクチャを知らない。</span><br>
+    <span class="ok">architecture.yaml を読んで、専用スキルを生成する。</span></p>
+  </div>
+
+  <!-- 07 Evolution -->
+  <div class="slide">
+    <div class="prompt">$ git log --oneline --all # 3つの失敗と1つの解</div>
+    <h2>設計変遷</h2>
+    <div class="era-row">
+      <div class="era">
+        <div class="era-num">Era 1 — 2026.03.12</div>
+        <h3>シェルスクリプト強制</h3>
+        <p style="font-size:12px; color:var(--muted);">1079行のスクリプトで外側からブロック。AI も人間もスキップ不可を目指した</p>
+        <div class="verdict fail">× 巨大化・穴だらけ</div>
+      </div>
+      <div class="era">
+        <div class="era-num">Era 2 — 2026.03.20</div>
+        <h3>Work Card 中心</h3>
+        <p style="font-size:12px; color:var(--muted);">docs/work.md のチェックリストで薄く管理。強制を捨て軽量化を図った</p>
+        <div class="verdict fail">× 整合性担保なし</div>
+      </div>
+      <div class="era now">
+        <div class="era-num">Era 3 — 2026.04.12</div>
+        <h3>宣言 + 継続検証</h3>
+        <p style="font-size:12px; color:var(--text);">maps_to で宣言。scan.js で検証し続ける。CLIランナーを完全廃棄</p>
+        <div class="verdict pass">✓ 整合性駆動開発</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 08 Closing -->
+  <div class="slide">
+    <div class="prompt">$ echo "insight"</div>
+    <div class="big-line">強制から宣言へ。</div>
+    <div class="big-line">外側からのブロックから内側からの不変条件へ。</div>
+    <pre style="margin-top:24px; font-size:14px;">
+<span class="ok">$</span> npx spec-runner
+
+<span class="dim">Detecting project mode...</span>
+<span class="ok">→</span> docs/ が空のため architecture-definition を起動します
+<span class="ok">→</span> architecture-skill-development へ引き継ぎます
+<span class="ok">✓</span> プロジェクト専用スキルを生成しました <span class="cursor"></span>
+</pre>
+  </div>
+
+</div>
+<div id="controls">
+  <div id="progress"></div>
+  <span id="counter"></span>
+</div>
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i===0?' active':'');
+    d.onclick = () => goTo(i);
+    progress.appendChild(d);
+  });
+  function goTo(i) {
+    if (i < 0 || i >= total) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current].classList.remove('exit'), 300);
+    progress.querySelectorAll('.dot')[current].classList.remove('active');
+    current = i;
+    slides[current].classList.add('active');
+    progress.querySelectorAll('.dot')[current].classList.add('active');
+    counter.textContent = (current+1)+'/'+total;
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key==='ArrowRight'||e.key===' '){e.preventDefault();goTo(current+1);}
+    if (e.key==='ArrowLeft'){e.preventDefault();goTo(current-1);}
+  });
+  let tx=null;
+  document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;});
+  document.addEventListener('touchend',e=>{if(!tx)return;const d=e.changedTouches[0].clientX-tx;if(Math.abs(d)>50)goTo(current+(d<0?1:-1));tx=null;});
+  counter.textContent = '1/'+total;
+</script>
+</body>
+</html>

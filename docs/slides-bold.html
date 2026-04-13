@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>spec-runner — Bold Edition</title>
+<style>
+  :root {
+    --bg: #f5f0eb;
+    --ink: #0f0f0f;
+    --accent: #e63329;
+    --accent2: #1a56db;
+    --muted: #666;
+    --light: #e8e3dd;
+    --border: #d0c8bf;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #e0dbd5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', sans-serif;
+    overflow: hidden;
+  }
+  #deck { position: relative; width: 960px; height: 540px; }
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.97);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .slide.active { opacity: 1; transform: scale(1); pointer-events: auto; }
+  .slide.exit { opacity: 0; transform: scale(1.03); }
+
+  /* ── Title slide ── */
+  .slide-title {
+    background: var(--ink);
+    flex-direction: row;
+  }
+  .title-left {
+    width: 56%;
+    padding: 56px 52px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .title-right {
+    width: 44%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .title-right::before {
+    content: 'spec';
+    font-size: 200px;
+    font-weight: 900;
+    color: rgba(255,255,255,0.08);
+    position: absolute;
+    line-height: 1;
+    bottom: -20px;
+    right: -20px;
+    letter-spacing: -0.05em;
+  }
+  .title-right-text {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+    line-height: 1.5;
+    z-index: 1;
+    letter-spacing: 0.05em;
+  }
+
+  .product-name {
+    font-size: 80px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+  }
+  .product-name span { color: var(--accent); }
+  .title-sub {
+    font-size: 15px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.08em;
+    margin-top: 24px;
+    text-transform: uppercase;
+  }
+
+  /* ── Standard slide ── */
+  .inner { padding: 52px 60px; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  h2 {
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--ink);
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin-bottom: 28px;
+  }
+  h2 .red { color: var(--accent); }
+  h2 .blue { color: var(--accent2); }
+
+  .body-text {
+    font-size: 18px;
+    line-height: 1.7;
+    color: var(--muted);
+  }
+  .body-text strong { color: var(--ink); }
+
+  .rule { height: 3px; background: var(--ink); width: 48px; margin: 20px 0; }
+
+  /* Loop diagram */
+  .loop {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 20px 0;
+  }
+  .loop-item {
+    background: var(--ink);
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 10px 18px;
+    line-height: 1.3;
+  }
+  .loop-item.red { background: var(--accent); }
+  .loop-arrow {
+    width: 0;
+    height: 0;
+    border-top: 20px solid transparent;
+    border-bottom: 20px solid transparent;
+    border-left: 16px solid var(--ink);
+    flex-shrink: 0;
+  }
+  .loop-arrow.red { border-left-color: var(--accent); }
+
+  /* Two column */
+  .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+  .col-block {
+    border-top: 3px solid var(--ink);
+    padding-top: 16px;
+  }
+  .col-block.accent { border-color: var(--accent2); }
+  .col-block h3 {
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--ink);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .col-block ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .col-block li { font-size: 14px; color: var(--muted); padding-left: 16px; position: relative; }
+  .col-block li::before { content: '→'; position: absolute; left: 0; color: var(--accent2); font-weight: 700; }
+
+  /* Mechanism rows */
+  .mech { display: flex; flex-direction: column; gap: 10px; }
+  .mech-row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    align-items: center;
+    gap: 0;
+  }
+  .mech-key {
+    background: var(--ink);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 10px 14px;
+    font-family: 'SF Mono', monospace;
+    letter-spacing: 0.03em;
+  }
+  .mech-key.a { background: var(--accent); }
+  .mech-val {
+    background: var(--light);
+    padding: 10px 16px;
+    font-size: 14px;
+    color: var(--ink);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Era */
+  .era-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; }
+  .era-col {
+    padding: 24px 20px;
+    border-right: 1px solid var(--border);
+  }
+  .era-col:last-child { border-right: none; }
+  .era-col.now { background: var(--ink); }
+  .era-num { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; }
+  .era-col.now .era-num { color: var(--accent); }
+  .era-col h3 { font-size: 16px; font-weight: 900; color: var(--ink); margin-bottom: 8px; }
+  .era-col.now h3 { color: #fff; }
+  .era-col p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .era-col.now p { color: rgba(255,255,255,0.6); }
+  .verdict { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px; margin-top: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .verdict.fail { background: rgba(230,51,41,0.12); color: var(--accent); }
+  .verdict.pass { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+
+  /* Big quote */
+  .big-quote {
+    font-size: 36px;
+    font-weight: 900;
+    color: var(--ink);
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+  }
+  .big-quote .line2 { color: var(--accent2); }
+
+  /* Split slide */
+  .split-slide {
+    flex-direction: row;
+    padding: 0;
+  }
+  .split-left {
+    width: 45%;
+    background: var(--ink);
+    padding: 48px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .split-right {
+    flex: 1;
+    padding: 48px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .split-left h2 { color: #fff; font-size: 36px; }
+  .split-left .eyebrow { color: var(--accent); }
+
+  /* Code */
+  pre {
+    background: var(--ink);
+    color: #d4d0cb;
+    padding: 18px 20px;
+    font-size: 13px;
+    line-height: 1.7;
+    font-family: 'SF Mono', monospace;
+    border-left: 3px solid var(--accent);
+  }
+  .k { color: var(--accent); font-weight: 700; }
+  .v { color: #a5d6ff; }
+  .c { color: #555; }
+
+  /* End slide */
+  .end-slide {
+    background: var(--ink);
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .end-line1 { font-size: 26px; font-weight: 900; color: rgba(255,255,255,0.4); letter-spacing: -0.01em; margin-bottom: 8px; }
+  .end-line2 { font-size: 44px; font-weight: 900; color: #fff; letter-spacing: -0.03em; margin-bottom: 4px; }
+  .end-line3 { font-size: 44px; font-weight: 900; color: var(--accent); letter-spacing: -0.03em; margin-bottom: 36px; }
+  .end-cmd { font-family: 'SF Mono', monospace; font-size: 16px; color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.06); padding: 12px 28px; display: inline-block; border: 1px solid rgba(255,255,255,0.1); }
+
+  /* Controls */
+  #controls { margin-top: 16px; display: flex; align-items: center; gap: 12px; }
+  #progress { display: flex; gap: 6px; }
+  .dot { width: 20px; height: 3px; background: #aaa; cursor: pointer; transition: background 0.2s; }
+  .dot.active { background: var(--accent); }
+  #counter { font-size: 11px; color: #999; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+  <!-- 01 Title -->
+  <div class="slide slide-title active">
+    <div class="title-left">
+      <div>
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.18em; color:rgba(255,255,255,0.4); text-transform:uppercase; margin-bottom:20px;">Harness Engineering</div>
+        <div class="product-name">spec-<span>run</span><br>ner</div>
+      </div>
+      <div class="title-sub">整合性駆動開発 &nbsp;·&nbsp; 2026</div>
+    </div>
+    <div class="title-right">
+      <div class="title-right-text">人間と AI が決めた<br>アーキテクチャから<br>専用スキルを育てる</div>
+    </div>
+  </div>
+
+  <!-- 02 Problem -->
+  <div class="slide active" style="display:none;">
+    <div class="inner">
+      <div class="eyebrow">Problem</div>
+      <h2>AI が速く書くほど<br>設計書が<span class="red">腐る</span></h2>
+      <div class="loop">
+        <div class="loop-item">AI がコードを書く</div>
+        <div class="loop-arrow"></div>
+        <div class="loop-item">設計書が乖離</div>
+        <div class="loop-arrow"></div>
+        <div class="loop-item red">次の AI が推測</div>
+        <div class="loop-arrow red"></div>
+        <div class="loop-item red">さらに腐る</div>
+      </div>
+      <p class="body-text"><strong>正のフィードバックループ。</strong>放置すると加速する。</p>
+    </div>
+  </div>
+
+  <!-- 03 Concept -->
+  <div class="slide">
+    <div class="inner">
+      <div class="eyebrow">Core Concept</div>
+      <h2>整合性を<br><span class="blue">不変条件</span>にする</h2>
+      <div class="rule"></div>
+      <p class="body-text">
+        docs 正本（設計書を先に書く）は<strong>手段</strong>であって目的ではない。<br>
+        目的は<strong>「設計書とコードが常に一致していること」</strong>の維持。<br>
+        整合性が崩れた瞬間、AI は推測で動き始める。
+      </p>
+    </div>
+  </div>
+
+  <!-- 04 Mechanisms -->
+  <div class="slide">
+    <div class="inner" style="padding-top:40px; padding-bottom:40px;">
+      <div class="eyebrow">Enforcement</div>
+      <h2 style="font-size:36px; margin-bottom:20px;">不変条件の強制機構</h2>
+      <div class="mech">
+        <div class="mech-row"><span class="mech-key">maps_to</span><span class="mech-val">設計書とコードの対応を宣言する。パス推測禁止</span></div>
+        <div class="mech-row"><span class="mech-key">scan.js + hooks</span><span class="mech-val">maps_to の実在を Edit/Write のたびに検証。なければ exit 1</span></div>
+        <div class="mech-row"><span class="mech-key a">@design-reviewer</span><span class="mech-val">責務・入出力・テスト観点の意味的整合をエージェントが検証</span></div>
+        <div class="mech-row"><span class="mech-key">design-change</span><span class="mech-val">フェーズゲートでコードを先に変えることを構造的に防ぐ</span></div>
+        <div class="mech-row"><span class="mech-key">depends_on</span><span class="mech-val">変更の波及範囲を設計書の依存関係として宣言する</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 05 Frontmatter -->
+  <div class="slide split-slide">
+    <div class="split-left">
+      <div class="eyebrow">Declaration</div>
+      <h2>frontmatter が<br>整合性の宣言</h2>
+      <p style="font-size:13px; color:rgba(255,255,255,0.5); margin-top:16px; line-height:1.6;">maps_to が設計書とコードをつなぐ唯一の正本。scan.js がこの宣言を検証し続ける。</p>
+    </div>
+    <div class="split-right">
+      <pre><span class="c">---</span>
+<span class="k">spec_runner:</span>
+  <span class="k">node_id:</span> <span class="v">detail.src.agents.reconciliation.agent</span>
+  <span class="k">kind:</span> <span class="v">detailed_design</span>
+  <span class="k">depends_on:</span>
+    - <span class="v">overview.system_context</span>
+  <span class="k">maps_to:</span>
+    - <span class="v">src/agents/reconciliation/agent.py</span>
+    - <span class="v">tests/agents/reconciliation/test_agent.py</span>
+<span class="c">---</span></pre>
+      <div style="display:flex; gap:16px; margin-top:16px;">
+        <div style="flex:1; border-top:2px solid var(--accent); padding-top:10px; font-size:13px; color:var(--muted);">
+          <strong style="color:var(--ink);">maps_to が腐ると</strong><br>scan.js が exit 1 を返す
+        </div>
+        <div style="flex:1; border-top:2px solid var(--accent2); padding-top:10px; font-size:13px; color:var(--muted);">
+          <strong style="color:var(--ink);">design-change では</strong><br>depends_on を辿り波及範囲を特定
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 06 Why project-specific -->
+  <div class="slide">
+    <div class="inner">
+      <div class="eyebrow">Key Insight</div>
+      <h2 style="font-size:38px;">汎用スキルは<br>アーキテクチャを<span class="red">知らない</span></h2>
+      <div class="cols2">
+        <div class="col-block">
+          <h3>DDD プロジェクト</h3>
+          <ul>
+            <li>設計単位: 集約・値オブジェクト</li>
+            <li>波及経路: ドメイン → UC → DB</li>
+            <li>テスト粒度: ドメインロジック</li>
+          </ul>
+        </div>
+        <div class="col-block accent">
+          <h3>architecture.yaml</h3>
+          <ul>
+            <li>style / has_frontend を宣言</li>
+            <li>architecture-skill-development が読む</li>
+            <li>プロジェクト専用スキルを生成する</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 07 Era -->
+  <div class="slide">
+    <div class="inner" style="padding:0;">
+      <div style="padding:28px 60px 20px;">
+        <div class="eyebrow">Design History</div>
+        <h2 style="font-size:34px; margin-bottom:0;">3つの失敗と1つの解</h2>
+      </div>
+      <div class="era-grid" style="flex:1;">
+        <div class="era-col">
+          <div class="era-num">Era 1 — 2026.03</div>
+          <h3>シェルスクリプト強制</h3>
+          <p>1079行のスクリプトで外側からブロック。「絶対スキップ不可」を目指した。</p>
+          <div class="verdict fail">× 巨大化・穴だらけ</div>
+        </div>
+        <div class="era-col">
+          <div class="era-num">Era 2 — 2026.03</div>
+          <h3>Work Card 中心</h3>
+          <p>work.md のチェックリストで薄く管理。強制を捨て軽量化を図った。</p>
+          <div class="verdict fail">× 整合性担保なし</div>
+        </div>
+        <div class="era-col now">
+          <div class="era-num">Era 3 — 2026.04</div>
+          <h3>宣言 + 継続検証</h3>
+          <p>maps_to で宣言。scan.js で検証し続ける。CLIランナーを廃棄。</p>
+          <div class="verdict pass">✓ 整合性駆動開発</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 08 End -->
+  <div class="slide end-slide">
+    <div class="end-line1">たどり着いたのは</div>
+    <div class="end-line2">強制から宣言へ。</div>
+    <div class="end-line3">外側から内側の不変条件へ。</div>
+    <div class="end-cmd">$ npx spec-runner</div>
+  </div>
+
+</div>
+<div id="controls">
+  <div id="progress"></div>
+  <span id="counter"></span>
+</div>
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+  slides.forEach(s => { s.style.display = ''; s.classList.remove('active'); });
+  slides[0].classList.add('active');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i===0?' active':'');
+    d.onclick = () => goTo(i);
+    progress.appendChild(d);
+  });
+  function goTo(i) {
+    if (i < 0 || i >= total) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current].classList.remove('exit'), 300);
+    progress.querySelectorAll('.dot')[current].classList.remove('active');
+    current = i;
+    slides[current].classList.add('active');
+    progress.querySelectorAll('.dot')[current].classList.add('active');
+    counter.textContent = (current+1)+'/'+total;
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key==='ArrowRight'||e.key===' '){e.preventDefault();goTo(current+1);}
+    if (e.key==='ArrowLeft'){e.preventDefault();goTo(current-1);}
+  });
+  let tx=null;
+  document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;});
+  document.addEventListener('touchend',e=>{if(!tx)return;const d=e.changedTouches[0].clientX-tx;if(Math.abs(d)>50)goTo(current+(d<0?1:-1));tx=null;});
+  counter.textContent = '1/'+total;
+</script>
+</body>
+</html>

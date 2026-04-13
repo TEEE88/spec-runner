@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>spec-runner — 整合性駆動開発</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --warn: #f0883e;
+    --danger: #f85149;
+    --code-bg: #1f2937;
+    --slide-w: 960px;
+    --slide-h: 540px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  #deck {
+    position: relative;
+    width: var(--slide-w);
+    height: var(--slide-h);
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 56px 64px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0;
+    transform: translateX(40px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+
+  .slide.exit {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+
+  /* ── Typography ─────────────────────────────── */
+  .label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+
+  h1 {
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin-bottom: 28px;
+  }
+
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 12px;
+    margin-top: 24px;
+  }
+
+  p {
+    font-size: 17px;
+    line-height: 1.7;
+    color: var(--muted);
+  }
+
+  p strong, li strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .tagline {
+    font-size: 20px;
+    color: var(--muted);
+    margin-top: 16px;
+    line-height: 1.5;
+  }
+
+  /* ── Code ──────────────────────────────────── */
+  pre, code {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #d2a679;
+    overflow: hidden;
+  }
+
+  code {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 13px;
+    color: var(--accent);
+  }
+
+  /* ── Lists ─────────────────────────────────── */
+  ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  li {
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--muted);
+    padding-left: 20px;
+    position: relative;
+  }
+
+  li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  /* ── Table ─────────────────────────────────── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  th {
+    text-align: left;
+    padding: 10px 16px;
+    background: var(--surface);
+    color: var(--accent);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    vertical-align: top;
+  }
+
+  td:first-child {
+    color: var(--text);
+    font-family: 'SF Mono', monospace;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  /* ── Accent boxes ──────────────────────────── */
+  .highlight-box {
+    background: rgba(88, 166, 255, 0.07);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 20px 0;
+  }
+
+  .highlight-box p {
+    color: var(--text);
+    font-size: 18px;
+    line-height: 1.6;
+  }
+
+  .warn-box {
+    background: rgba(240, 136, 62, 0.07);
+    border: 1px solid rgba(240, 136, 62, 0.3);
+    border-radius: 8px;
+    padding: 16px 20px;
+  }
+
+  .warn-box p { color: var(--warn); }
+
+  /* ── Layout helpers ─────────────────────────── */
+  .cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+
+  .cols3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+
+  .card p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── Era cards ──────────────────────────────── */
+  .era-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  .era-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+  }
+
+  .era-card.current {
+    border-color: var(--accent2);
+    background: rgba(63, 185, 80, 0.05);
+  }
+
+  .era-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .era-card.current .era-label { color: var(--accent2); }
+
+  .era-card h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 8px;
+    line-height: 1.3;
+  }
+
+  .era-card p {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .era-card .result {
+    margin-top: 12px;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    background: rgba(248, 81, 73, 0.1);
+    border: 1px solid rgba(248, 81, 73, 0.3);
+    color: var(--danger);
+  }
+
+  .era-card.current .result {
+    background: rgba(63, 185, 80, 0.1);
+    border-color: rgba(63, 185, 80, 0.3);
+    color: var(--accent2);
+  }
+
+  /* ── Flow diagram ──────────────────────────── */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 16px 0;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .flow-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .flow-step.accent {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .flow-arrow {
+    color: var(--muted);
+    font-size: 14px;
+    padding: 0 4px;
+  }
+
+  /* ── Mechanism list ─────────────────────────── */
+  .mech-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .mech-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+
+  .mech-tag {
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+    background: rgba(88, 166, 255, 0.1);
+    border: 1px solid rgba(88, 166, 255, 0.25);
+    border-radius: 4px;
+    padding: 3px 8px;
+    color: var(--accent);
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .mech-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* ── Skill grid ─────────────────────────────── */
+  .skill-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .skill-tag {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-family: 'SF Mono', monospace;
+    color: var(--accent);
+  }
+
+  .skill-tag .skill-desc {
+    font-family: -apple-system, sans-serif;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  /* ── Separator ──────────────────────────────── */
+  .sep {
+    height: 1px;
+    background: var(--border);
+    margin: 24px 0;
+  }
+
+  /* ── Title slide accents ────────────────────── */
+  .title-accent {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.15;
+    pointer-events: none;
+  }
+
+  .ta1 {
+    background: var(--accent);
+    right: -60px;
+    top: -80px;
+  }
+
+  .ta2 {
+    background: var(--accent2);
+    right: 100px;
+    bottom: -100px;
+    width: 200px;
+    height: 200px;
+  }
+
+  /* ── Pill badges ────────────────────────────── */
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    vertical-align: middle;
+    margin-left: 8px;
+  }
+
+  .badge.blue {
+    background: rgba(88, 166, 255, 0.1);
+    border-color: rgba(88, 166, 255, 0.3);
+    color: var(--accent);
+  }
+
+  .badge.green {
+    background: rgba(63, 185, 80, 0.1);
+    border-color: rgba(63, 185, 80, 0.3);
+    color: var(--accent2);
+  }
+
+  /* ── Bottom controls ─────────────────────────── */
+  #controls {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  #progress {
+    display: flex;
+    gap: 6px;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.3s, transform 0.3s;
+    cursor: pointer;
+  }
+
+  .dot.active {
+    background: var(--accent);
+    transform: scale(1.4);
+  }
+
+  #counter {
+    font-size: 12px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hint {
+    font-size: 11px;
+    color: var(--border);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Syntax highlight helpers ───────────────── */
+  .kw { color: #ff7b72; }
+  .str { color: #a5d6ff; }
+  .key { color: #79c0ff; }
+  .val { color: #d2a679; }
+  .cmt { color: #6e7681; }
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+  <!-- ── 01 Title ─────────────────────────────── -->
+  <div class="slide active">
+    <div class="title-accent ta1"></div>
+    <div class="title-accent ta2"></div>
+    <div class="label">Harness Engineering</div>
+    <h1>spec-runner</h1>
+    <p class="tagline">
+      人間と AI が決めたアーキテクチャから、<br>
+      そのプロジェクト専用の開発スキルを立ち上げる道具
+    </p>
+    <div class="sep"></div>
+    <p style="font-size:14px;">整合性駆動開発 &nbsp;·&nbsp; Claude Code / GitHub Copilot 対応</p>
+  </div>
+
+  <!-- ── 02 Problem ────────────────────────────── -->
+  <div class="slide">
+    <div class="label">Problem</div>
+    <h2>AI 時代の構造的問題</h2>
+    <div class="era-grid" style="grid-template-columns:1fr 1fr 1fr; margin-top:0;">
+      <div class="era-card">
+        <div class="era-label">Step 1</div>
+        <h3>AI がコードを速く書く</h3>
+        <p>設計書を書く前に実装が進む</p>
+      </div>
+      <div class="era-card">
+        <div class="era-label">Step 2</div>
+        <h3>設計書が腐る</h3>
+        <p>コードと設計書が乖離し始める</p>
+      </div>
+      <div class="era-card">
+        <div class="era-label">Step 3</div>
+        <h3>次の AI が推測で動く</h3>
+        <p>設計を読まずコードから推測し、さらに腐る</p>
+      </div>
+    </div>
+    <div class="highlight-box" style="margin-top:24px;">
+      <p>これは正のフィードバックループ。<strong>放置すると加速する。</strong></p>
+    </div>
+  </div>
+
+  <!-- ── 03 Core Concept ───────────────────────── -->
+  <div class="slide">
+    <div class="label">Core Concept</div>
+    <h2>整合性駆動開発</h2>
+    <div class="highlight-box">
+      <p>「設計書とコードが常に一致していること」を<strong>不変条件として維持する</strong>開発手法</p>
+    </div>
+    <ul style="margin-top:24px; gap:16px;">
+      <li><strong>docs 正本（設計書を先に書く）は手段</strong>であって目的ではない</li>
+      <li>目的は整合性の維持。整合性が保たれている限り、AI は設計書を読んで安全に実装できる</li>
+      <li>整合性が崩れた瞬間、AI は推測で動き始め、コードは設計から離れていく</li>
+    </ul>
+    <div class="sep"></div>
+    <p><strong>spec-runner</strong> はこの不変条件を機械的に強制するハーネスである</p>
+  </div>
+
+  <!-- ── 04 Mechanisms ─────────────────────────── -->
+  <div class="slide">
+    <div class="label">Enforcement</div>
+    <h2>不変条件の強制機構</h2>
+    <div class="mech-list">
+      <div class="mech-item">
+        <span class="mech-tag">maps_to</span>
+        <span class="mech-desc">設計書とコードの対応を<strong>宣言する</strong>。パス推測に頼らない</span>
+      </div>
+      <div class="mech-item">
+        <span class="mech-tag">scan.js + hooks</span>
+        <span class="mech-desc"><code>maps_to</code> の実在を Edit/Write のたびに検証。存在しないパスがあれば <strong>exit 1</strong></span>
+      </div>
+      <div class="mech-item">
+        <span class="mech-tag">@design-reviewer</span>
+        <span class="mech-desc">責務・入出力・テスト観点の<strong>意味的整合</strong>を検証するエージェント</span>
+      </div>
+      <div class="mech-item">
+        <span class="mech-tag">design-change</span>
+        <span class="mech-desc">フェーズゲートで<strong>コードを先に変えることを構造的に防ぐ</strong></span>
+      </div>
+      <div class="mech-item">
+        <span class="mech-tag">depends_on</span>
+        <span class="mech-desc">変更の<strong>波及範囲</strong>を設計書の依存関係として宣言する</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 05 Frontmatter ────────────────────────── -->
+  <div class="slide">
+    <div class="label">Declaration</div>
+    <h2>frontmatter が整合性の宣言</h2>
+    <div class="cols">
+      <pre><span class="cmt">---</span>
+<span class="key">spec_runner</span><span class="val">:</span>
+  <span class="key">node_id</span><span class="val">:</span> <span class="str">detail.src.agents.reconciliation.agent</span>
+  <span class="key">kind</span><span class="val">:</span> <span class="str">detailed_design</span>
+  <span class="key">depends_on</span><span class="val">:</span>
+    - <span class="str">overview.system_context</span>
+    - <span class="str">overview.use_case_list</span>
+  <span class="key">maps_to</span><span class="val">:</span>
+    - <span class="str">src/agents/reconciliation/agent.py</span>
+    - <span class="str">tests/agents/reconciliation/test_agent.py</span>
+<span class="cmt">---</span></pre>
+      <div>
+        <div class="card" style="margin-bottom:12px;">
+          <div class="card-title">maps_to</div>
+          <p>設計書とコードをつなぐ<strong>唯一の正本</strong>。<code>scan.js</code> がこの宣言を検証し続ける</p>
+        </div>
+        <div class="card">
+          <div class="card-title">depends_on</div>
+          <p>この設計書が何に依存するか。<code>design-change</code> が影響範囲を辿るときに使う</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 06 Why project-specific ──────────────── -->
+  <div class="slide">
+    <div class="label">Key Insight</div>
+    <h2>なぜプロジェクト専用スキルか</h2>
+    <p style="margin-bottom:20px;">整合性はアーキテクチャに根ざしている。</p>
+    <div class="cols">
+      <div class="card">
+        <div class="card-title">DDD プロジェクト</div>
+        <ul style="gap:8px;">
+          <li>設計単位: 集約・値オブジェクト</li>
+          <li>波及経路: ドメイン → UC → DB</li>
+          <li>テスト粒度: ドメインロジック単位</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title">CRUD プロジェクト</div>
+        <ul style="gap:8px;">
+          <li>設計単位: UC・サービス層</li>
+          <li>波及経路: UC → DB</li>
+          <li>テスト粒度: ユースケース単位</li>
+        </ul>
+      </div>
+    </div>
+    <div class="highlight-box" style="margin-top:20px;">
+      <p><strong>汎用スキルはアーキテクチャを知らない</strong>ため、AI は「正しいフロー」を提供できず整合性の維持が形骸化する。<br>
+      固定の skill pack を配るのではなく、<strong>決めたアーキテクチャから専用スキルを作る</strong>。</p>
+    </div>
+  </div>
+
+  <!-- ── 07 Overall Flow ───────────────────────── -->
+  <div class="slide">
+    <div class="label">System Overview</div>
+    <h2>全体フロー</h2>
+    <div style="display:flex; flex-direction:column; gap:14px; margin-top:8px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="badge blue">Install</span>
+        <span style="font-size:14px;color:var(--muted);">docs/ の有無を判定して自動起動 — ユーザーにコマンドを打たせない</span>
+      </div>
+      <div class="flow">
+        <div class="flow-step accent">architecture-definition</div>
+        <span class="flow-arrow">or</span>
+        <div class="flow-step accent">existing-project-to-docs</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">docs + architecture.yaml</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step accent">architecture-skill-development</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="badge blue">Setup</span>
+        <span style="font-size:14px;color:var(--muted);">architecture.yaml を読み、プロジェクト専用 skills / rules を生成</span>
+      </div>
+      <div class="flow">
+        <div class="flow-step">要件定義</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">概要設計</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">詳細設計</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">TDD</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">実装</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step" style="border-style:dashed;">繰り返し</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="badge">harness</span>
+        <span style="font-size:14px;color:var(--muted);">繰り返し問題が起きたら <code>harness-engineering</code> でスキル自体を改善</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 08 Components ─────────────────────────── -->
+  <div class="slide">
+    <div class="label">Components</div>
+    <h2>スキル・エージェント・ルール</h2>
+    <div class="cols3" style="margin-top:4px;">
+      <div>
+        <div class="card-title" style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); margin-bottom:10px;">Skills</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div class="skill-tag">architecture-definition<div class="skill-desc">新規プロジェクト初期化</div></div>
+          <div class="skill-tag">existing-project-to-docs<div class="skill-desc">既存 → docs 化</div></div>
+          <div class="skill-tag">architecture-skill-dev<div class="skill-desc">専用スキル生成</div></div>
+          <div class="skill-tag">design-change<div class="skill-desc">設計書駆動の変更</div></div>
+          <div class="skill-tag">test-driven-development<div class="skill-desc">TDD</div></div>
+          <div class="skill-tag">ddd-seed / simple-seed<div class="skill-desc">アーキテクチャ別シード</div></div>
+          <div class="skill-tag">harness-engineering<div class="skill-desc">ハーネス保守</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="card-title" style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); margin-bottom:10px;">Agents</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div class="skill-tag" style="color:#3fb950;">@code-reviewer<div class="skill-desc" style="color:var(--muted);">規約チェック（報告のみ）</div></div>
+          <div class="skill-tag" style="color:#3fb950;">@design-reviewer<div class="skill-desc" style="color:var(--muted);">設計⇔実装整合チェック</div></div>
+          <div class="skill-tag" style="color:#3fb950;">@test-runner<div class="skill-desc" style="color:var(--muted);">テスト実行・失敗分析</div></div>
+        </div>
+        <div class="card-title" style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); margin-bottom:10px; margin-top:16px;">Rules</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div class="skill-tag" style="color:#f0883e;">coding<div class="skill-desc" style="color:var(--muted);">src/, tests/ 規約</div></div>
+          <div class="skill-tag" style="color:#f0883e;">design-docs<div class="skill-desc" style="color:var(--muted);">docs/ frontmatter・品質</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="card-title" style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); margin-bottom:10px;">graph.json</div>
+        <pre style="font-size:11px; padding:12px 14px;">{
+  <span class="key">"nodes"</span>: { ... },
+  <span class="key">"reverse_index"</span>: { ... },
+  <span class="key">"missing_maps_to"</span>: []
+}</pre>
+        <p style="font-size:12px; margin-top:10px;"><code>scan.js</code> が hooks で自動生成。<br><code>missing_maps_to</code> に値があれば exit 1</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 09 Era 1 ──────────────────────────────── -->
+  <div class="slide">
+    <div class="label">Design History — Era 1</div>
+    <h2>シェルスクリプト強制型</h2>
+    <div class="cols">
+      <div>
+        <h3 style="color:var(--warn); margin-top:0;">やろうとしたこと</h3>
+        <p style="margin-bottom:16px;">「AI も人間も絶対にスキップできない」フェーズゲートを外側から強制する</p>
+        <pre style="font-size:12px;"><span class="cmt">spec-runner.sh（1079行）</span>
+├── state.json でフェーズ管理
+├── pre-tool-use.sh でコード出力をブロック
+├── CI phase-gate-check.yml（216行）
+├── grade-history.json（A/B/C/LOOP1）
+└── UC ブランチ強制管理</pre>
+      </div>
+      <div>
+        <h3 style="color:var(--danger); margin-top:0;">何が無理だったか</h3>
+        <ul>
+          <li><strong>1079行のスクリプト</strong>はルール追加のたびに複雑化</li>
+          <li>「絶対にスキップできない」を追求するほど<strong>穴が増えた</strong></li>
+          <li>ブランチ強制が邪魔になるケースが多発</li>
+          <li>グレードシステムは特定チームにしか合わなかった</li>
+        </ul>
+        <div class="warn-box" style="margin-top:16px;">
+          <p>外側からの強制は機能しない</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 10 Era 2 ──────────────────────────────── -->
+  <div class="slide">
+    <div class="label">Design History — Era 2</div>
+    <h2>Work Card 中心型</h2>
+    <div class="cols">
+      <div>
+        <h3 style="color:var(--warn); margin-top:0;">やろうとしたこと</h3>
+        <p style="margin-bottom:12px;">シェルスクリプト強制を捨て、<code>docs/work.md</code> をシンプルな SSoT にする薄いオーケストレーターへ</p>
+        <ul style="gap:8px;">
+          <li>grade-history・ブランチ強制・hooks を削除</li>
+          <li><code>work.md</code>（目的・受入条件・タスク）</li>
+          <li>再利用スキル <code>uc-k1</code> / <code>uc-k2</code></li>
+        </ul>
+        <p style="margin-top:12px; font-size:14px;">「薄くする」方向は正しかった</p>
+      </div>
+      <div>
+        <h3 style="color:var(--danger); margin-top:0;">何が無理だったか</h3>
+        <p><strong>チェックリストは軽量すぎた。</strong></p>
+        <ul style="margin-top:12px; gap:8px;">
+          <li>設計書との整合性を維持する仕組みがなかった</li>
+          <li>コードが設計から離れても検知できなかった</li>
+          <li>フェーズロックを個別修正で<strong>穴を埋め続ける</strong>ことになった</li>
+        </ul>
+        <div class="warn-box" style="margin-top:16px;">
+          <p>整合性を担保する手段がなかった</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 11 Era 3 ──────────────────────────────── -->
+  <div class="slide">
+    <div class="label">Design History — Era 3 (Current)</div>
+    <h2>ハーネスエンジニアリング型</h2>
+    <div class="cols">
+      <div>
+        <h3 style="color:var(--accent2); margin-top:0;">やったこと</h3>
+        <p style="margin-bottom:12px;">CLI ランナーを完全に捨て、Claude Code にスキル・ルール・エージェントをインストールする道具に作り直す</p>
+        <div style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+          <div style="color:var(--danger);">削除: bin/spec-runner.js（CLI ランナー）</div>
+          <div style="color:var(--danger);">削除: docs/work.md</div>
+          <div style="color:var(--accent2);">追加: skills / rules / agents テンプレート</div>
+          <div style="color:var(--accent2);">追加: maps_to frontmatter + scan.js</div>
+        </div>
+      </div>
+      <div>
+        <h3 style="color:var(--accent2); margin-top:0;">何が変わったか</h3>
+        <div class="highlight-box" style="margin-bottom:12px;">
+          <p style="font-size:15px;"><strong>強制の方向が逆転した</strong></p>
+        </div>
+        <p style="font-size:14px;">外側からブロックするのではなく、設計書とコードの対応を<strong>宣言させ、その宣言を検証し続ける</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 12 Philosophy Arc ─────────────────────── -->
+  <div class="slide">
+    <div class="label">Conclusion</div>
+    <h2>思想の変化</h2>
+    <div class="era-grid">
+      <div class="era-card">
+        <div class="era-label">Era 1</div>
+        <h3>外側から強制する</h3>
+        <p>「AI も人間もスキップできない仕組み」を押しつける</p>
+        <div class="result">巨大化・硬直・穴だらけになる</div>
+      </div>
+      <div class="era-card">
+        <div class="era-label">Era 2</div>
+        <h3>薄くして邪魔しない</h3>
+        <p>チェックリストで軽量管理する</p>
+        <div class="result">整合性を担保する手段がなくなる</div>
+      </div>
+      <div class="era-card current">
+        <div class="era-label">Era 3 — 現在</div>
+        <h3>宣言させ、検証し続ける</h3>
+        <p>設計書とコードの対応を宣言させ、その宣言の実在を継続的に検証する</p>
+        <div class="result">整合性駆動開発</div>
+      </div>
+    </div>
+    <div class="sep"></div>
+    <p style="text-align:center; font-size:18px; color:var(--text);">
+      強制から宣言へ。&nbsp;&nbsp;外側からのブロックから内側からの不変条件へ。
+    </p>
+  </div>
+
+</div>
+
+<!-- ── Controls ──────────────────────────────── -->
+<div id="controls">
+  <div id="progress"></div>
+  <span id="counter"></span>
+  <span class="hint">← → or Space to navigate</span>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+
+  // Build dots
+  slides.forEach((_, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === 0 ? ' active' : '');
+    dot.addEventListener('click', () => goTo(i));
+    progress.appendChild(dot);
+  });
+
+  function updateCounter() {
+    counter.textContent = `${current + 1} / ${total}`;
+  }
+
+  function goTo(idx) {
+    if (idx < 0 || idx >= total) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current].classList.remove('exit'), 400);
+
+    progress.querySelectorAll('.dot')[current].classList.remove('active');
+    current = idx;
+    slides[current].classList.add('active');
+    progress.querySelectorAll('.dot')[current].classList.add('active');
+    updateCounter();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(current - 1); }
+  });
+
+  // Touch/swipe
+  let touchX = null;
+  document.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 50) goTo(current + (dx < 0 ? 1 : -1));
+    touchX = null;
+  });
+
+  updateCounter();
+</script>
+</body>
+</html>

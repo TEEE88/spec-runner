@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>spec-runner — Cinematic Edition</title>
+<style>
+  :root {
+    --bg: #08081a;
+    --surface: #0e0e24;
+    --purple: #7c3aed;
+    --purple-light: #a855f7;
+    --blue: #2563eb;
+    --cyan: #06b6d4;
+    --green: #10b981;
+    --red: #ef4444;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --border: rgba(255,255,255,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Kaku Gothic ProN', sans-serif;
+    overflow: hidden;
+  }
+  #deck { position: relative; width: 960px; height: 540px; }
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  /* Glow orbs */
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.25;
+    pointer-events: none;
+  }
+
+  /* ── Typography ── */
+  .label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--purple-light);
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-size: 88px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+    background: linear-gradient(135deg, #fff 0%, #a78bfa 50%, #06b6d4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  h2 {
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 24px;
+  }
+  h2 .grad {
+    background: linear-gradient(90deg, var(--purple-light), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  h2 .red { color: var(--red); -webkit-text-fill-color: var(--red); }
+
+  p { font-size: 16px; line-height: 1.7; color: var(--muted); }
+  p strong { color: var(--text); }
+
+  /* ── Inner padding ── */
+  .inner { padding: 52px 64px; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+
+  /* ── Cards ── */
+  .glass {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    backdrop-filter: blur(10px);
+  }
+
+  /* ── Loop boxes ── */
+  .loop {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin: 20px 0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .loop-step {
+    flex: 1;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.05);
+    border-right: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: center;
+    position: relative;
+  }
+  .loop-step:last-child { border-right: none; }
+  .loop-step.danger { background: rgba(239,68,68,0.12); color: var(--red); }
+  .loop-step .step-num { font-size: 10px; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.1em; }
+
+  /* ── Mechanisms ── */
+  .mech { display: flex; flex-direction: column; gap: 8px; }
+  .mech-item {
+    display: grid;
+    grid-template-columns: 190px 1fr;
+    align-items: center;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .mech-key {
+    background: linear-gradient(90deg, rgba(124,58,237,0.3), rgba(124,58,237,0.1));
+    border: 1px solid rgba(124,58,237,0.3);
+    padding: 10px 16px;
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--purple-light);
+    border-right: none;
+    border-radius: 8px 0 0 8px;
+  }
+  .mech-val {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    padding: 10px 16px;
+    font-size: 13px;
+    color: var(--muted);
+    border-radius: 0 8px 8px 0;
+  }
+  .mech-val strong { color: var(--text); }
+
+  /* ── Code block ── */
+  pre {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--purple);
+    border-radius: 0 8px 8px 0;
+    padding: 18px 20px;
+    font-size: 13px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    line-height: 1.7;
+    color: #c4b5fd;
+  }
+  .k { color: #f472b6; }
+  .v { color: #67e8f9; }
+  .c { color: #4b5563; }
+
+  /* ── Era ── */
+  .era-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .era-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    background: rgba(255,255,255,0.02);
+  }
+  .era-card.now {
+    background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(6,182,212,0.08));
+    border-color: rgba(124,58,237,0.4);
+  }
+  .era-num { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 8px; }
+  .era-card.now .era-num { color: var(--purple-light); }
+  .era-card h3 { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .era-card p { font-size: 12px; line-height: 1.5; }
+  .verdict { display: inline-block; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; margin-top: 12px; }
+  .verdict.fail { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+  .verdict.pass { background: rgba(16,185,129,0.12); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+
+  /* ── Cols ── */
+  .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  /* ── Highlight box ── */
+  .hbox {
+    background: linear-gradient(135deg, rgba(124,58,237,0.1), rgba(6,182,212,0.08));
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 10px;
+    padding: 18px 24px;
+    margin: 16px 0;
+  }
+  .hbox p { color: var(--text); font-size: 17px; line-height: 1.6; }
+
+  /* ── End ── */
+  .end-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 30% 50%, rgba(124,58,237,0.2) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 50%, rgba(6,182,212,0.15) 0%, transparent 60%);
+  }
+  .end-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 40px;
+  }
+  .end-tag { font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--purple-light); margin-bottom: 20px; }
+  .end-main {
+    font-size: 40px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+    margin-bottom: 32px;
+  }
+  .end-main .l1 { color: var(--muted); font-size: 28px; }
+  .end-main .l2 {
+    background: linear-gradient(90deg, #fff 0%, #a78bfa 60%, #06b6d4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .end-main .l3 { color: rgba(255,255,255,0.6); font-size: 24px; }
+  .end-cmd {
+    display: inline-block;
+    font-family: 'SF Mono', monospace;
+    font-size: 15px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 12px 28px;
+    border-radius: 6px;
+    color: var(--purple-light);
+  }
+
+  /* ── Controls ── */
+  #controls { margin-top: 14px; display: flex; align-items: center; gap: 12px; }
+  #progress { display: flex; gap: 6px; }
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .dot.active {
+    background: var(--purple-light);
+    box-shadow: 0 0 8px var(--purple-light);
+    transform: scale(1.3);
+  }
+  #counter { font-size: 11px; color: rgba(255,255,255,0.3); }
+</style>
+</head>
+<body>
+<div id="deck">
+
+  <!-- 01 Title -->
+  <div class="slide active">
+    <div class="orb" style="width:400px;height:400px;background:var(--purple);right:-100px;top:-100px;"></div>
+    <div class="orb" style="width:300px;height:300px;background:var(--cyan);left:-80px;bottom:-80px;opacity:0.15;"></div>
+    <div class="inner">
+      <div class="label">Harness Engineering</div>
+      <h1>spec-<br>runner</h1>
+      <p style="margin-top:20px; font-size:17px; max-width:480px;">
+        整合性駆動開発 — 設計書とコードの不変条件を機械的に強制するハーネス
+      </p>
+    </div>
+  </div>
+
+  <!-- 02 Problem -->
+  <div class="slide">
+    <div class="orb" style="width:300px;height:300px;background:var(--red);right:-50px;top:50px;opacity:0.15;"></div>
+    <div class="inner">
+      <div class="label">Problem</div>
+      <h2>AI が速く書くほど<br>設計書が<span class="red">腐る</span></h2>
+      <div class="loop">
+        <div class="loop-step"><div class="step-num">STEP 1</div>AI がコードを書く</div>
+        <div class="loop-step"><div class="step-num">STEP 2</div>設計書が乖離</div>
+        <div class="loop-step danger"><div class="step-num">STEP 3</div>次の AI が推測</div>
+        <div class="loop-step danger"><div class="step-num">LOOP</div>さらに腐る →</div>
+      </div>
+      <p>正のフィードバックループ。<strong>放置すると加速する。</strong></p>
+    </div>
+  </div>
+
+  <!-- 03 Core Concept -->
+  <div class="slide">
+    <div class="orb" style="width:350px;height:350px;background:var(--purple);left:50%;top:50%;transform:translate(-50%,-50%);opacity:0.12;"></div>
+    <div class="inner">
+      <div class="label">Core Concept</div>
+      <h2><span class="grad">整合性駆動開発</span></h2>
+      <div class="hbox">
+        <p>「設計書とコードが常に一致していること」を<strong>不変条件として維持する</strong>開発手法</p>
+      </div>
+      <p>docs 正本（先に書く）は<strong>手段</strong>であって目的ではない。目的は整合性の維持。<br>
+      整合性が崩れた瞬間、AI は推測で動き始め、コードは設計から離れていく。</p>
+    </div>
+  </div>
+
+  <!-- 04 Mechanisms -->
+  <div class="slide">
+    <div class="inner" style="padding-top:40px;">
+      <div class="label">Enforcement</div>
+      <h2 style="font-size:34px; margin-bottom:16px;">不変条件の強制機構</h2>
+      <div class="mech">
+        <div class="mech-item"><span class="mech-key">maps_to</span><span class="mech-val">設計書とコードの対応を<strong>宣言する</strong>。パス推測禁止</span></div>
+        <div class="mech-item"><span class="mech-key">scan.js + hooks</span><span class="mech-val">maps_to の実在を Edit/Write のたびに検証。なければ <strong>exit 1</strong></span></div>
+        <div class="mech-item"><span class="mech-key">@design-reviewer</span><span class="mech-val">責務・入出力・テスト観点の<strong>意味的整合</strong>をエージェントが検証</span></div>
+        <div class="mech-item"><span class="mech-key">design-change</span><span class="mech-val">フェーズゲートで<strong>コードを先に変えることを構造的に防ぐ</strong></span></div>
+        <div class="mech-item"><span class="mech-key">depends_on</span><span class="mech-val">変更の<strong>波及範囲</strong>を設計書の依存関係として宣言する</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 05 Frontmatter -->
+  <div class="slide">
+    <div class="inner">
+      <div class="label">Declaration</div>
+      <h2 style="font-size:32px;">frontmatter が整合性の宣言</h2>
+      <div class="cols2">
+        <pre><span class="c">---</span>
+<span class="k">spec_runner:</span>
+  <span class="k">node_id:</span>
+    <span class="v">detail.src.agents.reconciliation.agent</span>
+  <span class="k">kind:</span> <span class="v">detailed_design</span>
+  <span class="k">depends_on:</span>
+    - <span class="v">overview.system_context</span>
+  <span class="k">maps_to:</span>
+    - <span class="v">src/agents/reconciliation/agent.py</span>
+    - <span class="v">tests/.../test_agent.py</span>
+<span class="c">---</span></pre>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="glass">
+            <div style="font-size:11px;color:var(--purple-light);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">maps_to が腐ると</div>
+            <p style="font-size:13px;">scan.js が exit 1 を返す。設計書の腐敗をコミット前に検知。</p>
+          </div>
+          <div class="glass">
+            <div style="font-size:11px;color:var(--cyan);font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">design-change では</div>
+            <p style="font-size:13px;">depends_on を辿り graph.json から波及範囲を自動列挙。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 06 Why project-specific -->
+  <div class="slide">
+    <div class="orb" style="width:250px;height:250px;background:var(--blue);right:80px;bottom:40px;"></div>
+    <div class="inner">
+      <div class="label">Key Insight</div>
+      <h2>汎用スキルは<br>アーキテクチャを<span class="red">知らない</span></h2>
+      <div class="hbox">
+        <p>固定の skill pack を配るのではなく、<strong>人間と AI が決めたアーキテクチャから、そのプロジェクト専用の skill を作る</strong>。プロジェクト固有の構造を知ったスキルがあって初めて、整合性駆動開発は実務で機能する。</p>
+      </div>
+      <p>architecture.yaml → architecture-skill-development → プロジェクト専用 skills / rules</p>
+    </div>
+  </div>
+
+  <!-- 07 Era -->
+  <div class="slide">
+    <div class="inner">
+      <div class="label">Design History</div>
+      <h2 style="font-size:34px; margin-bottom:8px;">3つの失敗と1つの解</h2>
+      <div class="era-grid">
+        <div class="era-card">
+          <div class="era-num">ERA 1 — 2026.03.12</div>
+          <h3>シェルスクリプト強制</h3>
+          <p>1079行のスクリプトで外側からブロック。「絶対スキップ不可」を目指した。</p>
+          <div class="verdict fail">× 巨大化・穴だらけ</div>
+        </div>
+        <div class="era-card">
+          <div class="era-num">ERA 2 — 2026.03.20</div>
+          <h3>Work Card 中心</h3>
+          <p>work.md のチェックリストで薄く管理。強制を捨て軽量化を図った。</p>
+          <div class="verdict fail">× 整合性担保なし</div>
+        </div>
+        <div class="era-card now">
+          <div class="era-num">ERA 3 — 2026.04.12</div>
+          <h3>宣言 + 継続検証</h3>
+          <p>maps_to で宣言し scan.js で検証し続ける。CLI ランナーを完全廃棄。</p>
+          <div class="verdict pass">✓ 整合性駆動開発</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 08 End -->
+  <div class="slide">
+    <div class="end-bg"></div>
+    <div class="end-content">
+      <div class="end-tag">Conclusion</div>
+      <div class="end-main">
+        <div class="l1">たどり着いたのは</div>
+        <div class="l2">強制から宣言へ。</div>
+        <div class="l3">外側から内側の不変条件へ。</div>
+      </div>
+      <div class="end-cmd">$ npx spec-runner</div>
+    </div>
+  </div>
+
+</div>
+<div id="controls">
+  <div id="progress"></div>
+  <span id="counter"></span>
+</div>
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i===0?' active':'');
+    d.onclick = () => goTo(i);
+    progress.appendChild(d);
+  });
+  function goTo(i) {
+    if (i < 0 || i >= total) return;
+    slides[current].classList.remove('active');
+    progress.querySelectorAll('.dot')[current].classList.remove('active');
+    current = i;
+    slides[current].classList.add('active');
+    progress.querySelectorAll('.dot')[current].classList.add('active');
+    counter.textContent = (current+1)+'/'+total;
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key==='ArrowRight'||e.key===' '){e.preventDefault();goTo(current+1);}
+    if (e.key==='ArrowLeft'){e.preventDefault();goTo(current-1);}
+  });
+  let tx=null;
+  document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;});
+  document.addEventListener('touchend',e=>{if(!tx)return;const d=e.changedTouches[0].clientX-tx;if(Math.abs(d)>50)goTo(current+(d<0?1:-1));tx=null;});
+  counter.textContent = '1/'+total;
+</script>
+</body>
+</html>
