@@ -31,7 +31,14 @@ Phase 5: architecture-skill-development へ自動移行
    | `ddd` | 複雑なビジネスドメインがある。集約・境界コンテキストで設計する必要がある |
    | `layered` | CRUD 中心またはビジネスロジックがシンプル。UC・サービス層で設計すれば十分 |
 
-6. 使用する AI 連携を確認する
+6. フロントエンドの有無を確認する
+
+   | 値 | 基準 |
+   |----|------|
+   | `true` | Web UI・モバイル画面がある |
+   | `false` | API・バックエンドのみ |
+
+7. 使用する AI 連携を確認する
 
    | 連携 | フォルダ |
    |------|---------|
@@ -39,7 +46,7 @@ Phase 5: architecture-skill-development へ自動移行
    | `github` | `.github/`（GitHub Copilot） |
    | 両方 | `.claude/` と `.github/` |
 
-7. ユーザーに確認・承認を得る
+8. ユーザーに確認・承認を得る
 
 ## Phase 2: フォルダ構造の決定
 
@@ -65,6 +72,7 @@ Phase 5: architecture-skill-development へ自動移行
 2. 最低限、以下を構造化する
    - **integrations**: Phase 1 で確認した連携（`[claude]` / `[github]` / `[claude, github]`）
    - **style**: Phase 1 で選択したスタイル（`ddd` / `layered`）
+   - **has_frontend**: Phase 1 で確認したフロントエンドの有無（`true` / `false`）
    - **folder_structure**: Phase 2 で決定した構造（`src/` / `tests/` / `docs/` など）
    - domain_structure（style: ddd のときのみ）
    - runtime_units

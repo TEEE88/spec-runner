@@ -39,12 +39,14 @@ Phase 6: セットアップ専用 skill のアーカイブ提案
 
 ### seed の選択
 
-`architecture.yaml` の `style` を読み、使う seed を決める。
+`architecture.yaml` の `style` と `has_frontend` を読み、使う seed を決める。
 
 | style | 使う seed | 説明 |
 |-------|----------|------|
 | `ddd` | `ddd-seed` | ドメイン層（集約・値オブジェクト）を持つ DDD 向けフロー |
 | `layered` | `simple-seed` | ドメイン層を持たない UC・サービス層中心のフロー |
+
+`has_frontend: true` の場合、seed から生成するプロジェクト専用スキルに「UC ファイルに画面レイアウトセクションを含める」旨を明記する。
 
 選んだ seed の SKILL.md をコピーし、フェーズ構成・テンプレートパス・用語をこのプロジェクトの実態に合わせて書き換えたプロジェクト専用 skill を作る（Phase 1 は完了済みのため削除する。元の seed はアーカイブ候補とする）。
 
@@ -118,7 +120,7 @@ Phase 6: セットアップ専用 skill のアーカイブ提案
 3. 必要であれば削除前にバックアップ先をユーザーに伝える
 4. `.spec-runner/` の不要ファイルも整理する
    - `intake/current-system-inventory.md` — docs に昇格済みなら削除してよい
-   - `architecture/architecture.yaml` — project 専用 skill が完成し、参照不要になったら削除してよい
+   - `architecture/architecture.yaml` — **削除しない**。設計変更のたびに最新状態を保つ。プロジェクトの全体像を把握するための正本として使い続ける
    - `scripts/scan.js` — **削除しない**。`@analyze-impact` が常時依存しているため
 5. `CLAUDE.md` を更新する
    - 「初回自動起動」セクション（spec-runner インストール時に生成されたもの）を削除する

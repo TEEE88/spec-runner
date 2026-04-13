@@ -1,6 +1,6 @@
 {
   "name": "spec-runner",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "docs を正本にした開発運用ハーネスを Claude / Copilot に導入する",
   "license": "MIT",
   "bin": {
