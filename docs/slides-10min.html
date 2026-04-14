@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>spec-runner — 10min LT</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --ink: #111111;
+    --muted: #666666;
+    --light: #f4f4f4;
+    --border: #e0e0e0;
+    --red: #e63329;
+    --blue: #1d4ed8;
+    --green: #16a34a;
+    --yellow: #d97706;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #e8e8e8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    overflow: hidden;
+  }
+
+  #deck { position: relative; width: 960px; height: 540px; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  /* ── Footer (persistent) ── */
+  .footer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 34px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    background: var(--bg);
+  }
+  .footer-url { font-size: 11px; font-family: 'SF Mono', monospace; color: #aaa; }
+  .footer-slide { font-size: 11px; color: #ccc; font-variant-numeric: tabular-nums; }
+
+  /* ── Inner ── */
+  .inner {
+    flex: 1;
+    padding: 48px 64px 52px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .inner.top { justify-content: flex-start; padding-top: 44px; }
+
+  /* ── Label ── */
+  .label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 16px;
+  }
+  .label.blue { color: var(--blue); }
+  .label.green { color: var(--green); }
+  .label.muted { color: var(--muted); }
+
+  /* ── Typography ── */
+  h1 {
+    font-size: 72px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 0.92;
+    color: var(--ink);
+  }
+  h1 .red { color: var(--red); }
+
+  h2 {
+    font-size: 46px;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--ink);
+  }
+  h2 .red { color: var(--red); }
+  h2 .blue { color: var(--blue); }
+  h2 .green { color: var(--green); }
+
+  h3 {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  .body {
+    font-size: 22px;
+    line-height: 1.65;
+    color: var(--muted);
+    margin-top: 16px;
+  }
+  .body strong { color: var(--ink); }
+
+  .small-body {
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--muted);
+  }
+  .small-body strong { color: var(--ink); }
+
+  /* ── Divider ── */
+  .rule {
+    width: 48px;
+    height: 3px;
+    background: var(--ink);
+    margin: 20px 0;
+  }
+  .rule.red { background: var(--red); }
+
+  /* ── Two-col ── */
+  .cols2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+  .cols3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--light);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 22px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  /* ── Problem items ── */
+  .prob-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .prob-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 18px;
+    background: var(--light);
+    border-left: 3px solid var(--red);
+  }
+  .prob-icon {
+    font-size: 18px;
+    line-height: 1.4;
+    flex-shrink: 0;
+  }
+  .prob-text {
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .prob-text .sub {
+    font-size: 13px;
+    color: var(--muted);
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* ── Solution items ── */
+  .sol-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .sol-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 18px;
+    border-left: 3px solid var(--blue);
+    background: #f0f5ff;
+  }
+  .sol-item.green { border-left-color: var(--green); background: #f0fdf4; }
+  .sol-num {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--blue);
+    background: #dbeafe;
+    padding: 3px 8px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .sol-item.green .sol-num { color: var(--green); background: #dcfce7; }
+  .sol-text {
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .sol-text .sub {
+    font-size: 13px;
+    color: var(--muted);
+    display: block;
+    margin-top: 3px;
+  }
+
+  /* ── Code ── */
+  pre {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 14px;
+    line-height: 1.7;
+    background: var(--ink);
+    color: #ccc;
+    padding: 18px 22px;
+    border-radius: 6px;
+  }
+  .k { color: #f87171; }
+  .v { color: #67e8f9; }
+  .c { color: #555; }
+  .ok { color: #4ade80; }
+
+  /* ── Mechanism ── */
+  .mech {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .mech-row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .mech-key {
+    background: var(--ink);
+    color: #fff;
+    padding: 10px 14px;
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+  }
+  .mech-val {
+    background: var(--light);
+    padding: 10px 16px;
+    font-size: 14px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+  }
+  .mech-val strong { color: var(--ink); }
+
+  /* ── Stats ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .stat-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px 20px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .stat-card .num {
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    color: var(--green);
+    line-height: 1;
+  }
+  .stat-card .unit { font-size: 18px; color: var(--muted); }
+  .stat-card .desc {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  /* ── Era ── */
+  .era-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-top: 20px;
+  }
+  .era-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    background: var(--light);
+  }
+  .era-card.now {
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+  .era-num {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .era-card.now .era-num { color: rgba(255,255,255,0.4); }
+  .era-card h3 { font-size: 15px; margin-bottom: 6px; color: var(--ink); }
+  .era-card.now h3 { color: #fff; }
+  .era-card p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .era-card.now p { color: rgba(255,255,255,0.5); }
+  .verdict {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-top: 10px;
+  }
+  .verdict.fail { background: rgba(230,51,41,0.1); color: var(--red); border: 1px solid rgba(230,51,41,0.25); }
+  .verdict.pass { background: rgba(22,163,74,0.1); color: var(--green); border: 1px solid rgba(22,163,74,0.25); }
+  .verdict.pass.inv { background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.2); }
+
+  /* ── Flow ── */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 20px 0;
+  }
+  .flow-step {
+    flex: 1;
+    background: var(--light);
+    border: 1px solid var(--border);
+    border-right: none;
+    padding: 12px 10px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+  .flow-step:first-child { border-radius: 6px 0 0 6px; }
+  .flow-step:last-child { border-right: 1px solid var(--border); border-radius: 0 6px 6px 0; }
+  .flow-arrow {
+    width: 0; height: 0;
+    border-top: 16px solid transparent;
+    border-bottom: 16px solid transparent;
+    border-left: 12px solid var(--border);
+    flex-shrink: 0;
+    z-index: 1;
+  }
+
+  /* ── Title slide ── */
+  .slide-title { flex-direction: row; }
+  .t-left {
+    flex: 1;
+    padding: 52px 52px 52px 64px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-right: 1px solid var(--border);
+  }
+  .t-right {
+    width: 320px;
+    background: var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 40px 32px;
+  }
+  .t-stat { text-align: center; }
+  .t-stat .n {
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    color: #fff;
+    line-height: 1;
+    display: block;
+  }
+  .t-stat .u {
+    font-size: 12px;
+    color: rgba(255,255,255,0.45);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    display: block;
+    margin-top: 4px;
+  }
+  .t-divider { width: 32px; height: 1px; background: rgba(255,255,255,0.15); }
+
+  /* ── Big quote slide ── */
+  .slide-quote {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 52px 80px;
+  }
+  .quote-text {
+    font-size: 42px;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1.3;
+    color: var(--ink);
+  }
+  .quote-text .red { color: var(--red); }
+  .quote-sub {
+    font-size: 20px;
+    color: var(--muted);
+    margin-top: 20px;
+    line-height: 1.5;
+  }
+
+  /* ── Highlight box ── */
+  .hbox {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-left: 3px solid var(--blue);
+    border-radius: 0 6px 6px 0;
+    padding: 16px 20px;
+    margin-top: 16px;
+  }
+  .hbox p { font-size: 18px; line-height: 1.6; color: var(--ink); }
+
+  /* ── End slide ── */
+  .slide-end {
+    background: var(--ink);
+  }
+  .end-inner {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 64px 52px;
+    gap: 8px;
+  }
+  .end-pre { font-size: 16px; color: rgba(255,255,255,0.3); letter-spacing: 0.05em; margin-bottom: 8px; }
+  .end-l1 { font-size: 46px; font-weight: 900; letter-spacing: -0.03em; color: #fff; line-height: 1.15; }
+  .end-l2 { font-size: 46px; font-weight: 900; letter-spacing: -0.03em; color: var(--red); line-height: 1.15; margin-bottom: 24px; }
+  .end-cmd {
+    font-family: 'SF Mono', monospace;
+    font-size: 16px;
+    color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 12px 32px;
+    border-radius: 6px;
+    display: inline-block;
+    margin-bottom: 20px;
+  }
+  .end-next {
+    font-size: 14px;
+    color: rgba(255,255,255,0.3);
+    line-height: 1.7;
+  }
+  .end-next strong { color: rgba(255,255,255,0.6); }
+
+  /* ── Problem vs Solution two col ── */
+  .vs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    margin-top: 20px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .vs-col { padding: 20px 24px; }
+  .vs-col:first-child { border-right: 1px solid var(--border); background: #fff5f5; }
+  .vs-col:last-child { background: #f0fdf4; }
+  .vs-head {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .vs-head.red { color: var(--red); }
+  .vs-head.green { color: var(--green); }
+  .vs-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .vs-list li { font-size: 14px; color: var(--ink); padding-left: 18px; position: relative; line-height: 1.4; }
+  .vs-list li::before { position: absolute; left: 0; font-size: 12px; }
+  .vs-col:first-child .vs-list li::before { content: '✕'; color: var(--red); }
+  .vs-col:last-child .vs-list li::before { content: '✓'; color: var(--green); }
+
+  /* ── Controls ── */
+  #controls {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  #progress { display: flex; gap: 5px; }
+  .dot {
+    width: 18px; height: 3px;
+    background: #ccc;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+  .dot.active { background: var(--ink); width: 28px; }
+  #counter { font-size: 11px; color: #999; font-variant-numeric: tabular-nums; }
+  .hint { font-size: 11px; color: #ccc; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+  <!-- ── 01 TITLE ──────────────────────────────
+       フック: 実績の数字から始める
+  ─────────────────────────────────────────── -->
+  <div class="slide slide-title active" data-n="1">
+    <div class="t-left">
+      <div>
+        <div class="label">2ヶ月で作ったAI駆動開発ハーネス</div>
+        <h1>spec-<br>runner</h1>
+        <p class="body" style="margin-top:16px; font-size:18px;">整合性駆動開発 — 設計書とコードの<br>不変条件を機械的に強制するツール</p>
+      </div>
+      <p style="font-size:13px; color:#ccc;">github.com/TEEE88/spec-runner</p>
+    </div>
+    <div class="t-right">
+      <div class="t-stat">
+        <span class="n">2h</span>
+        <span class="u">AIチャットシステム構築</span>
+      </div>
+      <div class="t-divider"></div>
+      <div class="t-stat">
+        <span class="n">3</span>
+        <span class="u">プロダクトで検証済み</span>
+      </div>
+      <div class="t-divider"></div>
+      <div class="t-stat">
+        <span class="n">1人</span>
+        <span class="u">ソロ開発でも機能した</span>
+      </div>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-slide"></span>
+    </div>
+  </div>
+
+  <!-- ── 02 問題提起（全体） ─────────────────── -->
+  <div class="slide" data-n="2">
+    <div class="inner">
+      <div class="label">AI 駆動開発の現実</div>
+      <h2>速く作れる。<span class="red">でも保守できない。</span></h2>
+      <p class="body">AI は動くコードをすぐ生成する。でも後から触れないコードを量産しているだけかもしれない。</p>
+      <div class="rule red" style="margin-top:24px;"></div>
+      <p class="body" style="margin-top:0; font-size:18px; color:var(--muted);">この問題を解決しようと、<strong>2ヶ月かけてライブラリを作った。</strong></p>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-slide"></span>
+    </div>
+  </div>
+
+  <!-- ── 03 課題①: 保守性 ──────────────────── -->
+  <div class="slide" data-n="3">
+    <div class="inner top">
+      <div class="label">課題 1 / 3</div>
+      <h2 style="font-size:38px;">ドキュメントがない → <span class="red">保守不能</span></h2>
+      <div class="prob-list">
+        <div class="prob-item">
+          <span class="prob-icon">📄</span>
+          <span class="prob-text">ドキュメントを作らないので、修正のたびにコードを全部調査しないといけない
+            <span class="sub">「このコードが何をしているか」を毎回ゼロから理解する</span>
+          </span>
+        </div>
+        <div class="prob-item">
+          <span class="prob-icon">🌀</span>
+          <span class="prob-text">完全 AI 任せだとアーキテクチャが崩壊する
+            <span class="sub">共通化なし・ハードコード多発・ロジック分散・責務が適当 → 後になるほど修正コストが増大</span>
+          </span>
+        </div>
+        <div class="prob-item">
+          <span class="prob-icon">🤔</span>
+          <span class="prob-text">なぜこの設計にしたのかが記録されない
+            <span class="sub">後から「なぜこうなっているか」が誰にもわからない</span>
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-slide"></span>
+    </div>
+  </div>
+
+  <!-- ── 04 課題②: スピードの罠 ─────────────── -->
+  <div class="slide" data-n="4">
+    <div class="inner top">
+      <div class="label">課題 2 / 3</div>
+      <h2 style="font-size:38px;">AI の<span class="red">速さ</span>が影響範囲を隠す</h2>
+      <div class="prob-list">
+        <div class="prob-item">
+          <span class="prob-icon">💥</span>
+          <span class="prob-text">何かを修正したときに影響範囲がわからない
+            <span class="sub">「実際に動かして確認する」しかない → どこかでエラーが起きていることが多い</span>
+          </span>
+        </div>
+        <div class="prob-item">
+          <span class="prob-icon">🔍</span>
+          <span class="prob-text">影響範囲の調査に時間がかかる
+            <span class="sub">ドキュメントやコードを一から全部読み込んでいく → AI も同じく全部読む</span>
+          </span>
+        </div>
+        <div class="prob-item">
+          <span class="prob-icon">🤖</span>
+          <span class="prob-text">AI に毎回前提を説明しないといけない
+            <span class="sub">「このシステムはこういう設計で…」を毎セッション繰り返す</span>
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-slide"></span>
+    </div>
+  </div>
+
+  <!-- ── 05 課題③: 既存ツール ──────────────── -->
+  <div class="slide" data-n="5">
+    <div class="inner top">
+      <div class="label">課題 3 / 3</div>
+      <h2 style="font-size:38px;">既存ツールは<span class="red">使いにくい</span></h2>
+      <div class="prob-list">
+        <div class="prob-item">
+          <span class="prob-icon">⌨️</span>
+          <span class="prob-text">コマンドを覚えて自分で打たないといけない
+            <span class="sub">仕様駆動開発のライブラリは、手動でコマンドを選ぶ手間がある</span>
+          </span>
+        </div>
+        <div class="prob-item">
+          <span class="prob-icon">🔤</span>
+          <span class="prob-text">生成されるドキュメントが英語ファイル名・詳細すぎる
+            <span class="sub">日本語チームには読みにくい。内容が多すぎて見切れない</span>
+          </span>
+        </div>
+        <div class="prob-item">
+          <span class="prob-icon">🧪</span>
+          <span class="prob-text">テストを後から書いても「既存挙動の確認」にしかならない
+            <span class="sub">先に書かないとバグを検出する力がない</span>
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-slide"></span>
+    </div>
+  </div>
+
+  <!-- ── 06 課題まとめ ─────────────────────── -->
+  <div class="slide" data-n="6">
+    <div class="inner">
+      <div class="label">課題まとめ</div>
+      <h2>AI 駆動開発の<span class="red">7つの課題</span></h2>
+      <div class="vs-grid" style="display:block; background:var(--light); border-radius:8px; padding:20px 24px; margin-top:20px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 32px;">
+          <div style="font-size:15px; color:var(--ink); padding-left:20px; position:relative; line-height:1.5;">
+            <span style="position:absolute; left:0; color:var(--red); font-weight:700;">✕</span>ドキュメントがなく保守不能
+          </div>
+          <div style="font-size:15px; color:var(--ink); padding-left:20px; position:relative; line-height:1.5;">
+            <span style="position:absolute; left:0; color:var(--red); font-weight:700;">✕</span>影響範囲がわからない
+          </div>
+          <div style="font-size:15px; color:var(--ink); padding-left:20px; position:relative; line-height:1.5;">
+            <span style="position:absolute; left:0; color:var(--red); font-weight:700;">✕</span>アーキテクチャが崩壊する
+          </div>
+          <div style="font-size:15px; color:var(--ink); padding-left:20px; position:relative; line-height:1.5;">
+            <span style="position:absolute; left:0; color:var(--red); font-weight:700;">✕</span>AI に毎回前提を説明する
+          </div>
+          <div style="font-size:15px; color:var(--ink); padding-left:20px; position:relative; line-height:1.5;">
+            <span style="position:absolute; left:0; color:var(--red); font-weight:700;">✕</span>設計判断が記録されない
+          </div>
+          <div style="font-size:15px; color:var(--ink); padding-left:20px; position:relative; line-height:1.5;">
+            <span style="position:absolute; left:0; color:var(--red); font-weight:700;">✕</span>コマンドを覚えないといけない
+          </div>
+          <div style="font-size:15px; color:var(--ink); padding-left:20px; position:relative; line-height:1.5;">
+            <span style="position:absolute; left:0; color:var(--red); font-weight:700;">✕</span>テストを後から書いても意味がない
+          </div>
+        </div>
+      </div>
+      <p class="body" style="margin-top:24px;">これを解決するために <strong>2ヶ月かけて spec-runner を作った</strong></p>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-slide"></span>
+    </div>
+  </div>
+
+  <!-- ── 07 解決①: 自動起動 ─────────────────── -->
+  <div class="slide" data-n="7">
+    <div class="inner top">
+      <div class="label blue">解決 1 — コマンドを打たせない</div>
+      <h2 style="font-size:38px;"><span class="blue">自動で</span>最適なフローを選ぶ</h2>
+      <div class="sol-list">
+        <div class="sol-item">
+          <span class="sol-num">AUTO</span>
+          <span class="sol-text">Claude Code 起動時に <code style="background:var(--light); padding:2px 6px; border-radius:3px; font-size:13px;">docs/</code> の有無を判定して自動起動
+            <span class="sub">新規プロジェクト → architecture-definition を起動 / 既存 → existing-project-to-docs を起動</span>
+          </span>
+        </div>
+        <div class="sol-item">
+          <span class="sol-num">SKILL</span>
+          <span class="sol-text">状況に応じて最適なスキルを AI が選ぶ
+            <span class="sub">ユーザーは「何を作りたいか」だけ言えばいい。コマンドを覚える必要はない</span>
+          </span>
+        </div>
+        <div class="sol-item">
+          <span class="sol-num">ARCH</span>
+          <span class="sol-text">architecture.yaml でアーキテクチャ設計契約を記録
+            <span class="sub">DDD / レイヤード / プラグイン型 → それぞれ専用スキルを自動生成</span>
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-slide"></span>
+    </div>
+  </div>
+
+  <!-- ── 08 解決②: ドキュメント設計 ────────── -->
+  <div class="slide" data-n="8">
+    <div class="inner top">
+      <div class="label blue">解決 2 — ドキュメント設計</div>
+      <h2 style="font-size:38px;"><span class="blue">日本語・階層・テンプレート</span></h2>
+      <div class="cols2" style="margin-top:16px; gap:20px;">
+        <div>
+          <div class="sol-list">
+            <div class="sol-item">
+              <span class="sol-num">構造</span>
+              <span class="sol-text">要件定義 → 概要設計 → 詳細設計の3層。上から順に読めば全体がわかる</span>
+            </div>
+            <div class="sol-item">
+              <span class="sol-num">日本語</span>
+              <span class="sol-text">ファイル名・フォルダ名を日本語に統一。チームが迷わない</span>
+            </div>
+            <div class="sol-item">
+              <span class="sol-num">粒度</span>
+              <span class="sol-text">ドキュメントにコードを書かない。<strong>振る舞いだけ</strong>を記述する</span>
+            </div>
+          </div>
+        </div>
+        <pre style="font-size:13px; align-self:center;"><span class="c">docs/</span>
+<span class="ok">├── 01_要件定義/</span>
+<span class="ok">│   └── 要件定義.md</span>
+<span class="ok">├── 02_概要設計/</span>
+<span class="ok">│   ├── ユースケース一覧.md</span>
+<span class="ok">│   ├── システム全体俯瞰.md</span>
+<span class="ok">│   └── 90_ADR/</span>       <span class="c">← 設計判断を記録</span>
+<span class="ok">└── 03_詳細設計/</span>
+<span class="ok">    └── src/**</span>         <span class="c">← src/ をミラー</span></pre>
+      </div>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-slide"></span>
+    </div>
+  </div>
+
+  <!-- ── 09 解決③: 整合性駆動 ──────────────── -->
+  <div class="slide" data-n="9">
+    <div class="inner top">
+      <div class="label blue">解決 3 — 整合性駆動開発</div>
+      <h2 style="font-size:38px;">ドキュメントとコードを<span class="blue">常に一対に</span></h2>
+      <div class="cols2" style="margin-top:16px; gap:20px;">
+        <div class="mech">
+          <div class="mech-row">
+            <span class="mech-key">maps_to</span>
+            <span class="mech-val">設計書 ↔ コードの対応を<strong>宣言する</strong></span>
+          </div>
+          <div class="mech-row">
+            <span class="mech-key">scan.js + hooks</span>
+            <span class="mech-val">Edit/Write のたびに実在を検証。なければ <strong>exit 1</strong></span>
+          </div>
+          <div class="mech-row">
+            <span class="mech-key">@design-reviewer</span>
+            <span class="mech-val">責務・入出力の意味的整合をエージェントが検証</span>
+          </div>
+          <div class="mech-row">
+            <span class="mech-key">TDD スキル</span>
+            <span class="mech-val">テストを先に書くことを<strong>強制する</strong></span>
+          </div>
+        </div>
+        <div class="hbox" style="background:#eff6ff; border-left-color:var(--blue);">
+          <p style="font-size:16px; line-height:1.7;">設計書が腐ったら<br><strong>自動で検知する。</strong><br><br>コードを先に変えることを<br><strong>構造的に防ぐ。</strong></p>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-slide"></span>
+    </div>
+  </div>
+
+  <!-- ── 10 解決④: 影響範囲 ─────────────────── -->
+  <div class="slide" data-n="10">
+    <div class="inner top">
+      <div class="label blue">解決 4 — 影響範囲の見える化</div>
+      <h2 style="font-size:38px;">このUCを修正すると<span class="blue">どこに影響するか</span>、即わかる</h2>
+      <div class="cols2" style="margin-top:16px; gap:20px; align-items:start;">
+        <div>
+          <div class="sol-list">
+            <div class="sol-item">
+              <span class="sol-num">宣言</span>
+              <span class="sol-text"><code style="font-size:12px; background:var(--light); padding:1px 5px;">depends_on</code> に依存する設計書を書く</span>
+            </div>
+            <div class="sol-item">
+              <span class="sol-num">自動</span>
+              <span class="sol-text">scan.js が graph.json に依存グラフを自動生成</span>
+            </div>
+            <div class="sol-item">
+              <span class="sol-num">追跡</span>
+              <span class="sol-text">design-change でこのグラフを辿り影響ドキュメント・コードを列挙</span>
+            </div>
+          </div>
+        </div>
+        <pre style="font-size:12px; align-self:start;"><span class="c">// graph.json（自動生成）</span>
+{
+  <span class="k">"nodes"</span>: {
+    <span class="v">"detail.usecase.注文確定"</span>: {
+      <span class="k">"depends_on"</span>: [
+        <span class="v">"overview.use_case_list"</span>,
+        <span class="v">"detail.domain.注文"</span>
+      ],
+      <span class="k">"maps_to"</span>: [
+        <span class="v">"src/order/confirm.py"</span>,
+        <span class="v">"tests/order/test_confirm.py"</span>
+      ]
+    }
+  },
+  <span class="k">"reverse_index"</span>: { ... } <span class="c">← 上流を即追跡</span>
+}</pre>
+      </div>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-slide"></span>
+    </div>
+  </div>
+
+  <!-- ── 11 課題 vs 解決 まとめ ──────────────── -->
+  <div class="slide" data-n="11">
+    <div class="inner top">
+      <div class="label">Before / After</div>
+      <h2 style="font-size:36px; margin-bottom:16px;">7つの課題 → 7つの解決</h2>
+      <div class="vs-grid">
+        <div class="vs-col">
+          <div class="vs-head red">Before</div>
+          <ul class="vs-list">
+            <li>ドキュメントがなく保守不能</li>
+            <li>アーキテクチャが崩壊する</li>
+            <li>設計判断が記録されない</li>
+            <li>影響範囲がわからない</li>
+            <li>AI に毎回前提を説明する</li>
+            <li>コマンドを覚えないといけない</li>
+            <li>テストを後から書いても意味がない</li>
+          </ul>
+        </div>
+        <div class="vs-col">
+          <div class="vs-head green">After — spec-runner</div>
+          <ul class="vs-list">
+            <li>日本語・階層・テンプレートで即参照</li>
+            <li>architecture.yaml で設計契約を固める</li>
+            <li>ADR で「なぜ」を記録する</li>
+            <li>maps_to + graph.json で自動追跡</li>
+            <li>docs があれば AI が自分で読む</li>
+            <li>CLAUDE.md が自動で最適スキルを起動</li>
+            <li>TDD スキルで先に書くことを強制</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-slide"></span>
+    </div>
+  </div>
+
+  <!-- ── 12 実績 ──────────────────────────────── -->
+  <div class="slide" data-n="12">
+    <div class="inner">
+      <div class="label green">Real Results</div>
+      <h2>実際に<span class="green">試してみた</span></h2>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="num">2<span class="unit">時間</span></div>
+          <div class="desc">AI チャットシステムを<br>ゼロから構築できた</div>
+        </div>
+        <div class="stat-card">
+          <div class="num">3</div>
+          <div class="desc">プロダクトで<br>検証済み</div>
+        </div>
+        <div class="stat-card">
+          <div class="num">1人</div>
+          <div class="desc">ソロ開発でも<br>整合性が維持できた</div>
+        </div>
+      </div>
+      <p class="body" style="margin-top:20px; font-size:17px;">チームにも見せたところ <strong>「これ良さそう」</strong>。<br>施策チームで既存開発への AI 駆動導入の実証として <strong>採用予定</strong>。</p>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-slide"></span>
+    </div>
+  </div>
+
+  <!-- ── 13 変遷 ──────────────────────────────── -->
+  <div class="slide" data-n="13">
+    <div class="inner">
+      <div class="label muted">2ヶ月の試行錯誤</div>
+      <h2 style="font-size:38px;">3つの失敗から辿り着いた</h2>
+      <div class="era-grid">
+        <div class="era-card">
+          <div class="era-num">Era 1 — 2026.03</div>
+          <h3>シェルスクリプト強制</h3>
+          <p>1079行のスクリプトで外側からブロック。「絶対スキップ不可」を目指した。</p>
+          <div class="verdict fail">× 巨大化・穴だらけ</div>
+        </div>
+        <div class="era-card">
+          <div class="era-num">Era 2 — 2026.03</div>
+          <h3>チェックリスト管理</h3>
+          <p>work.md で薄く管理。強制を捨て軽量化を図ったが…</p>
+          <div class="verdict fail">× 整合性担保なし</div>
+        </div>
+        <div class="era-card now">
+          <div class="era-num">Era 3 — 2026.04</div>
+          <h3>宣言 + 継続検証</h3>
+          <p>maps_to で宣言し scan.js で検証し続ける。CLI ランナーを廃棄。</p>
+          <div class="verdict pass inv">✓ 整合性駆動開発</div>
+        </div>
+      </div>
+      <p class="body" style="font-size:17px; margin-top:16px;"><strong>強制から宣言へ。</strong>外側からのブロックから内側からの不変条件へ。</p>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-slide"></span>
+    </div>
+  </div>
+
+  <!-- ── 14 END ─────────────────────────────────── -->
+  <div class="slide slide-end" data-n="14">
+    <div class="end-inner">
+      <div class="end-pre">2ヶ月かけてたどり着いた答え</div>
+      <div class="end-l1">強制から宣言へ。</div>
+      <div class="end-l2">外側から内側の不変条件へ。</div>
+      <div class="end-cmd">$ npx spec-runner</div>
+      <div class="end-next">
+        <strong>今後：</strong>AIチームでのチーム開発に本格導入予定<br>
+        施策チームで既存開発への実証スタート<br>
+        github.com/TEEE88/spec-runner
+      </div>
+    </div>
+    <div class="footer" style="background:rgba(255,255,255,0.05); border-top-color:rgba(255,255,255,0.08);">
+      <span class="footer-url" style="color:rgba(255,255,255,0.2);">github.com/TEEE88/spec-runner</span>
+      <span class="footer-slide"></span>
+    </div>
+  </div>
+
+</div>
+
+<div id="controls">
+  <div id="progress"></div>
+  <span id="counter"></span>
+  <span class="hint">← → Space</span>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  const hint = 'github.com/TEEE88/spec-runner';
+
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    progress.appendChild(d);
+  });
+
+  // Update footer slide numbers
+  function updateFooters() {
+    slides.forEach((s, i) => {
+      const f = s.querySelector('.footer-slide');
+      if (f) f.textContent = (i + 1) + ' / ' + total;
+    });
+  }
+  updateFooters();
+
+  function goTo(i) {
+    if (i < 0 || i >= total) return;
+    slides[current].classList.remove('active');
+    progress.querySelectorAll('.dot')[current].classList.remove('active');
+    current = i;
+    slides[current].classList.add('active');
+    progress.querySelectorAll('.dot')[current].classList.add('active');
+    counter.textContent = (current + 1) + ' / ' + total;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(current - 1); }
+  });
+
+  let tx = null;
+  document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    if (!tx) return;
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) goTo(current + (dx < 0 ? 1 : -1));
+    tx = null;
+  });
+
+  counter.textContent = '1 / ' + total;
+</script>
+</body>
+</html>
