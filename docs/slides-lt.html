@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>spec-runner LT</title>
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --accent: #e63329;
+    --blue: #3b82f6;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --text: #f5f5f5;
+    --muted: #888;
+    --border: #2a2a2a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', sans-serif;
+    overflow: hidden;
+  }
+
+  #deck { position: relative; width: 960px; height: 540px; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  /* ── Persistent footer ── */
+  .footer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 36px;
+    background: #000;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+  }
+  .footer-url {
+    font-size: 12px;
+    font-family: 'SF Mono', monospace;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+  }
+  .footer-tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #333;
+  }
+
+  /* ── Inner ── */
+  .inner {
+    padding: 48px 64px 56px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  /* ── Labels ── */
+  .label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+  .label.blue { color: var(--blue); }
+  .label.green { color: var(--green); }
+
+  /* ── Typography ── */
+  h1 {
+    font-size: 76px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+    color: var(--text);
+  }
+  h1 .accent { color: var(--accent); }
+
+  h2 {
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--text);
+  }
+  h2 .red { color: var(--accent); }
+  h2 .blue { color: var(--blue); }
+  h2 .green { color: var(--green); }
+
+  .big-stat {
+    font-size: 100px;
+    font-weight: 900;
+    letter-spacing: -0.05em;
+    line-height: 1;
+    color: var(--green);
+  }
+  .big-stat .unit {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--muted);
+    margin-left: 8px;
+  }
+
+  .body {
+    font-size: 24px;
+    line-height: 1.6;
+    color: var(--muted);
+    margin-top: 16px;
+  }
+  .body strong { color: var(--text); }
+
+  .big-body {
+    font-size: 32px;
+    line-height: 1.5;
+    color: var(--muted);
+    margin-top: 20px;
+  }
+  .big-body strong { color: var(--text); }
+
+  /* ── Code ── */
+  pre {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 18px;
+    line-height: 1.7;
+    background: #000;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 20px 24px;
+    color: #ccc;
+  }
+  .k { color: var(--accent); font-weight: 700; }
+  .v { color: #67e8f9; }
+  .c { color: #444; }
+  .ok { color: var(--green); }
+  .warn { color: var(--yellow); }
+  .err { color: var(--accent); }
+
+  /* ── Two col ── */
+  .cols2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    margin-top: 20px;
+  }
+
+  /* ── Result cards ── */
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+  }
+  .result-card .num {
+    font-size: 48px;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    color: var(--green);
+    line-height: 1;
+  }
+  .result-card .unit { font-size: 18px; color: var(--muted); }
+  .result-card .desc {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.4;
+  }
+
+  /* ── Loop ── */
+  .loop {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 24px 0;
+  }
+  .loop-step {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 14px 12px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    border-right: none;
+  }
+  .loop-step:first-child { border-radius: 8px 0 0 8px; }
+  .loop-step.danger { background: rgba(230,51,41,0.1); border-color: rgba(230,51,41,0.3); color: var(--accent); }
+  .loop-arrow {
+    width: 0; height: 0;
+    border-top: 20px solid transparent;
+    border-bottom: 20px solid transparent;
+    border-left: 14px solid var(--border);
+    flex-shrink: 0;
+    background: transparent;
+  }
+  .loop-step:last-child { border-right: 1px solid var(--border); border-radius: 0 8px 8px 0; }
+
+  /* ── Era row ── */
+  .era-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .era {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    background: var(--surface);
+  }
+  .era.now {
+    border-color: var(--green);
+    background: rgba(34,197,94,0.06);
+  }
+  .era-num {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .era.now .era-num { color: var(--green); }
+  .era h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .era p { font-size: 13px; color: var(--muted); line-height: 1.4; }
+  .verdict {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-top: 10px;
+    letter-spacing: 0.06em;
+  }
+  .verdict.fail { background: rgba(230,51,41,0.1); color: var(--accent); border: 1px solid rgba(230,51,41,0.3); }
+  .verdict.pass { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+
+  /* ── Highlight box ── */
+  .hbox {
+    background: rgba(59,130,246,0.08);
+    border: 1px solid rgba(59,130,246,0.25);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-top: 20px;
+  }
+  .hbox p { font-size: 22px; line-height: 1.5; color: var(--text); }
+
+  /* ── Mechanism list ── */
+  .mech { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+  .mech-item {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .mech-key {
+    background: rgba(230,51,41,0.12);
+    border: 1px solid rgba(230,51,41,0.2);
+    padding: 10px 14px;
+    font-family: 'SF Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    border-right: none;
+    border-radius: 6px 0 0 6px;
+  }
+  .mech-val {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 10px 16px;
+    font-size: 15px;
+    color: var(--muted);
+    border-radius: 0 6px 6px 0;
+  }
+  .mech-val strong { color: var(--text); }
+
+  /* ── Title slide ── */
+  .slide-title { flex-direction: row; }
+  .title-left {
+    flex: 1;
+    padding: 52px 52px 52px 64px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .title-right {
+    width: 340px;
+    background: var(--accent);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    gap: 20px;
+    flex-shrink: 0;
+  }
+  .title-right-stat {
+    text-align: center;
+  }
+  .title-right-stat .n {
+    font-size: 56px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    display: block;
+  }
+  .title-right-stat .u {
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    display: block;
+    margin-top: 4px;
+  }
+  .title-right .divider {
+    width: 40px;
+    height: 1px;
+    background: rgba(255,255,255,0.3);
+  }
+
+  /* ── End slide ── */
+  .slide-end {
+    background: #000;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .end-sub { font-size: 18px; color: var(--muted); margin-bottom: 12px; letter-spacing: 0.05em; }
+  .end-main {
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .end-main span { color: var(--green); }
+  .end-cmd {
+    font-family: 'SF Mono', monospace;
+    font-size: 18px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 12px 32px;
+    display: inline-block;
+    border-radius: 6px;
+    margin-top: 20px;
+  }
+
+  /* ── Controls ── */
+  #controls {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  #progress { display: flex; gap: 6px; }
+  .dot {
+    width: 22px; height: 3px;
+    background: #333;
+    cursor: pointer;
+    transition: background 0.2s, width 0.2s;
+    border-radius: 2px;
+  }
+  .dot.active { background: var(--accent); width: 32px; }
+  #counter { font-size: 11px; color: #444; font-variant-numeric: tabular-nums; }
+  .hint { font-size: 11px; color: #2a2a2a; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+  <!-- ── 01 Hook ────────────────────────────────
+       「2時間でAIチャットシステムを作れた」から始める
+  ─────────────────────────────────────────── -->
+  <div class="slide slide-title active">
+    <div class="title-left">
+      <div>
+        <div class="label">実話</div>
+        <h1>2時間で<br>AI チャット<br><span class="accent">作れた</span></h1>
+      </div>
+      <p style="font-size:16px; color:var(--muted);">spec-runner — 整合性駆動開発ハーネス</p>
+    </div>
+    <div class="title-right">
+      <div class="title-right-stat">
+        <span class="n">2h</span>
+        <span class="u">AIチャットシステム構築</span>
+      </div>
+      <div class="divider"></div>
+      <div class="title-right-stat">
+        <span class="n">3</span>
+        <span class="u">プロダクトで検証済み</span>
+      </div>
+      <div class="divider"></div>
+      <div class="title-right-stat">
+        <span class="n">1人</span>
+        <span class="u">ソロ開発でも機能する</span>
+      </div>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-tag">spec-runner</span>
+    </div>
+  </div>
+
+  <!-- ── 02 Problem ─────────────────────────── -->
+  <div class="slide">
+    <div class="inner">
+      <div class="label">Problem</div>
+      <h2>AI が速く書くほど<br>設計書が<span class="red">腐る</span></h2>
+      <div class="loop">
+        <div class="loop-step">AI がコードを書く</div>
+        <div class="loop-arrow"></div>
+        <div class="loop-step">設計書が乖離する</div>
+        <div class="loop-arrow"></div>
+        <div class="loop-step danger">次の AI が推測</div>
+        <div class="loop-arrow"></div>
+        <div class="loop-step danger">さらに腐る ↺</div>
+      </div>
+      <p class="body">正のフィードバックループ。<strong>放置すると加速する。</strong></p>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-tag">spec-runner</span>
+    </div>
+  </div>
+
+  <!-- ── 03 Solution Concept ─────────────────── -->
+  <div class="slide">
+    <div class="inner">
+      <div class="label blue">Solution</div>
+      <h2><span class="blue">整合性</span>を<br>不変条件にする</h2>
+      <div class="hbox">
+        <p>「設計書とコードが常に一致」を<strong>機械的に強制する</strong><br>
+        docs 正本は手段。目的は<strong>整合性の維持</strong>。</p>
+      </div>
+      <p class="body" style="margin-top:20px;">spec-runner はこの不変条件を強制するハーネスである</p>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-tag">spec-runner</span>
+    </div>
+  </div>
+
+  <!-- ── 04 How it works ─────────────────────── -->
+  <div class="slide">
+    <div class="inner" style="padding-top:40px; padding-bottom:52px;">
+      <div class="label">How it works</div>
+      <h2 style="font-size:40px; margin-bottom:4px;">5つの強制機構</h2>
+      <div class="mech">
+        <div class="mech-item"><span class="mech-key">maps_to</span><span class="mech-val">設計書とコードの対応を<strong>宣言する</strong></span></div>
+        <div class="mech-item"><span class="mech-key">scan.js + hooks</span><span class="mech-val">Edit/Write のたびに実在を検証。なければ <strong>exit 1</strong></span></div>
+        <div class="mech-item"><span class="mech-key">@design-reviewer</span><span class="mech-val">責務・入出力の<strong>意味的整合</strong>をエージェントが検証</span></div>
+        <div class="mech-item"><span class="mech-key">design-change</span><span class="mech-val">フェーズゲートで<strong>コードを先に変えることを防ぐ</strong></span></div>
+        <div class="mech-item"><span class="mech-key">depends_on</span><span class="mech-val">変更の<strong>波及範囲</strong>を依存関係として宣言する</span></div>
+      </div>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-tag">spec-runner</span>
+    </div>
+  </div>
+
+  <!-- ── 05 Real Results ─────────────────────── -->
+  <div class="slide">
+    <div class="inner">
+      <div class="label green">Real Results</div>
+      <h2>実際に<span class="green">試してみた</span></h2>
+      <div class="result-grid">
+        <div class="result-card">
+          <div class="num">2<span class="unit">時間</span></div>
+          <div class="desc">AIチャットシステムを<br>ゼロから構築</div>
+        </div>
+        <div class="result-card">
+          <div class="num">3</div>
+          <div class="desc">プロダクトで<br>検証済み</div>
+        </div>
+        <div class="result-card">
+          <div class="num">1人</div>
+          <div class="desc">ソロ開発でも<br>整合性が維持できた</div>
+        </div>
+      </div>
+      <p class="body" style="margin-top:20px; font-size:18px;">チームにも見せたところ「これ良さそう」。施策チームで既存開発への導入を<strong>実証予定</strong>。</p>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-tag">spec-runner</span>
+    </div>
+  </div>
+
+  <!-- ── 06 Evolution (なぜここに至ったか) ────── -->
+  <div class="slide">
+    <div class="inner">
+      <div class="label">Design History</div>
+      <h2 style="font-size:38px;">3つの試行錯誤</h2>
+      <div class="era-row">
+        <div class="era">
+          <div class="era-num">Era 1</div>
+          <h3>シェルスクリプト強制</h3>
+          <p>1079行のスクリプトで外側からブロック</p>
+          <div class="verdict fail">× 巨大化・穴だらけ</div>
+        </div>
+        <div class="era">
+          <div class="era-num">Era 2</div>
+          <h3>チェックリスト管理</h3>
+          <p>work.md で薄く管理。整合性担保なし</p>
+          <div class="verdict fail">× 設計書がまた腐る</div>
+        </div>
+        <div class="era now">
+          <div class="era-num">Era 3 — 現在</div>
+          <h3>宣言 + 継続検証</h3>
+          <p>maps_to で宣言し scan.js で検証し続ける</p>
+          <div class="verdict pass">✓ 整合性駆動開発</div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-tag">spec-runner</span>
+    </div>
+  </div>
+
+  <!-- ── 07 End ──────────────────────────────── -->
+  <div class="slide slide-end">
+    <div style="position:relative; z-index:1; padding-bottom:36px;">
+      <div class="end-sub">たどり着いた答えはシンプルだった</div>
+      <div class="end-main">強制から<span>宣言</span>へ。<br>外側から内側の不変条件へ。</div>
+      <p style="font-size:18px; color:var(--muted); margin-bottom:4px;">AIチーム開発の整合性問題を解決したい方</p>
+      <div class="end-cmd">$ npx spec-runner</div>
+    </div>
+    <div class="footer" style="background:transparent; border-top-color:#1a1a1a;">
+      <span class="footer-url" style="color:#444;">github.com/TEEE88/spec-runner</span>
+      <span class="footer-tag">spec-runner</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- Controls -->
+<div id="controls">
+  <div id="progress"></div>
+  <span id="counter"></span>
+  <span class="hint">← → Space</span>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i===0?' active':'');
+    d.onclick = () => goTo(i);
+    progress.appendChild(d);
+  });
+
+  function goTo(i) {
+    if (i < 0 || i >= total) return;
+    slides[current].classList.remove('active');
+    progress.querySelectorAll('.dot')[current].classList.remove('active');
+    current = i;
+    slides[current].classList.add('active');
+    progress.querySelectorAll('.dot')[current].classList.add('active');
+    counter.textContent = (current+1) + ' / ' + total;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key==='ArrowRight'||e.key===' '){e.preventDefault();goTo(current+1);}
+    if (e.key==='ArrowLeft'){e.preventDefault();goTo(current-1);}
+  });
+
+  let tx = null;
+  document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    if (!tx) return;
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) goTo(current + (dx < 0 ? 1 : -1));
+    tx = null;
+  });
+
+  counter.textContent = '1 / ' + total;
+</script>
+</body>
+</html>
