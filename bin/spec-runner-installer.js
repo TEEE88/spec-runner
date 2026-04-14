@@ -25,15 +25,13 @@ const DEST_GITHUB_DIR = path.join(CWD, ".github");
 
 const FORCE = process.env.SPEC_RUNNER_FORCE === "1";
 const TARGET = (process.env.SPEC_RUNNER_TARGET || "").trim().toLowerCase();
-const MODE = (process.env.SPEC_RUNNER_MODE || "").trim().toLowerCase();
-const ARCH_STATUS = (process.env.SPEC_RUNNER_ARCH_STATUS || "").trim().toLowerCase();
 
 const TEMPLATE_ROOT = path.join(PKG_DIR, "spec-runner", "templates");
 const CLAUDE_TEMPLATE_DIR = path.join(TEMPLATE_ROOT, ".claude");
 const COPILOT_TEMPLATE_DIR = path.join(TEMPLATE_ROOT, ".github");
 
 function parseArgs(argv) {
-  const out = { target: "", mode: "", archStatus: "" };
+  const out = { target: "" };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === "--target" && i + 1 < argv.length) {
@@ -43,24 +41,6 @@ function parseArgs(argv) {
     }
     if (a.startsWith("--target=")) {
       out.target = a.slice("--target=".length).trim().toLowerCase();
-      continue;
-    }
-    if (a === "--mode" && i + 1 < argv.length) {
-      out.mode = String(argv[i + 1] || "").trim().toLowerCase();
-      i += 1;
-      continue;
-    }
-    if (a.startsWith("--mode=")) {
-      out.mode = a.slice("--mode=".length).trim().toLowerCase();
-      continue;
-    }
-    if (a === "--arch-status" && i + 1 < argv.length) {
-      out.archStatus = String(argv[i + 1] || "").trim().toLowerCase();
-      i += 1;
-      continue;
-    }
-    if (a.startsWith("--arch-status=")) {
-      out.archStatus = a.slice("--arch-status=".length).trim().toLowerCase();
       continue;
     }
   }
@@ -194,48 +174,6 @@ function promptTargetInteractive() {
   if (ans === "2") return "copilot";
   if (ans === "3") return "both";
   return "claude";
-}
-
-function normalizeMode(t) {
-  if (!t) return "";
-  const x = String(t).trim().toLowerCase();
-  if (x === "new" || x === "n") return "new";
-  if (x === "existing" || x === "exist" || x === "e") return "existing";
-  return "";
-}
-
-function promptModeInteractive() {
-  if (!isTTY()) return "new";
-
-  const ans = promptLine(
-    "\nプロジェクトの状態を選んでください:\n" +
-    "  1) 新規プロジェクト\n" +
-    "  2) 既存プロジェクト\n" +
-    "選択 [1/2] : "
-  );
-  if (ans === "2") return "existing";
-  return "new";
-}
-
-function normalizeArchStatus(t) {
-  if (!t) return "";
-  const x = String(t).trim().toLowerCase();
-  if (x === "undecided" || x === "u") return "undecided";
-  if (x === "decided" || x === "d") return "decided";
-  return "";
-}
-
-function promptArchStatusInteractive() {
-  if (!isTTY()) return "undecided";
-
-  const ans = promptLine(
-    "\nアーキテクチャの状態を選んでください:\n" +
-    "  1) 未決定（これから決める）\n" +
-    "  2) 既に決まっている\n" +
-    "選択 [1/2] : "
-  );
-  if (ans === "2") return "decided";
-  return "undecided";
 }
 
 function archivePathFor(destPath, archiveRoot) {
@@ -390,21 +328,12 @@ function printBanner() {
   console.log("");
 }
 
-function printNextSteps(archStatus) {
+function printNextSteps() {
   console.log("─────────────────────────────────────────");
-  if (archStatus === "decided") {
-    console.log("次のステップ:");
-    console.log("");
-    console.log("  1. .spec-runner/architecture/architecture.yaml を用意してください。");
-    console.log("     （既に決まっているアーキテクチャを記述）");
-    console.log("");
-    console.log("  2. Claude Code を開いて /architecture-skill-development を実行してください。");
-  } else {
-    console.log("次のステップ:");
-    console.log("");
-    console.log("  Claude Code を開いて、作りたいものを伝えてください。");
-    console.log("  セットアップが自動で始まります。");
-  }
+  console.log("次のステップ:");
+  console.log("");
+  console.log("  Claude Code を開いて、作りたいものを伝えてください。");
+  console.log("  セットアップが自動で始まります。");
   console.log("─────────────────────────────────────────");
 }
 
@@ -414,13 +343,6 @@ function main() {
   const args = parseArgs(process.argv.slice(2));
   let target = normalizeTarget(args.target) || normalizeTarget(TARGET);
   if (!target) target = promptTargetInteractive();
-
-  let mode = normalizeMode(args.mode) || normalizeMode(MODE);
-  if (!mode) mode = promptModeInteractive();
-
-  let archStatus = normalizeArchStatus(args.archStatus) || normalizeArchStatus(ARCH_STATUS);
-  if (!archStatus && mode === "new") archStatus = promptArchStatusInteractive();
-  if (!archStatus) archStatus = "undecided";
 
   const ts = FORCE ? isoTimestampSafe() : null;
   const archiveRoot = ts ? path.join(CWD, ".spec-runner", "archive", ts) : null;
@@ -466,7 +388,7 @@ function main() {
   else if (target === "copilot") console.log("完了: .github/ を導入しました。");
   else console.log("完了: .claude/ と .github/ を導入しました。");
   console.log("");
-  printNextSteps(archStatus);
+  printNextSteps();
 }
 
 main();

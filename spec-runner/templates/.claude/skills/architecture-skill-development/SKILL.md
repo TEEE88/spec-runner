@@ -37,18 +37,19 @@ Phase 6: セットアップ専用 skill のアーカイブ提案
 2. 常時守る約束は rule にする
 3. 毎回コピーする設計書は template にする
 
-### seed の選択
+### プロジェクト専用スキルの作成
 
-`architecture.yaml` の `style` と `has_frontend` を読み、使う seed を決める。
+`architecture.yaml` の `style` に応じた seed（`ddd-seed` / `simple-seed`）がインストール済みの場合、どのように専用スキルを作るかをユーザーに確認する。
 
-| style | 使う seed | 説明 |
-|-------|----------|------|
-| `ddd` | `ddd-seed` | ドメイン層（集約・値オブジェクト）を持つ DDD 向けフロー |
-| `layered` | `simple-seed` | ドメイン層を持たない UC・サービス層中心のフロー |
+| 選択肢 | 内容 |
+|--------|------|
+| 新規に作る | `harness-format.md` を基に、このプロジェクトのフローをゼロから記述する |
+| リネームだけ | seed ファイルをプロジェクト専用名に変更する |
+| リネーム＋構成変更 | seed をリネームしたうえでフェーズ構成・テンプレートパスをプロジェクトの実態に合わせて書き換える |
 
-`has_frontend: true` の場合、seed から生成するプロジェクト専用スキルに「UC ファイルに画面レイアウトセクションを含める」旨を明記する。
+seed が存在しない場合は「新規に作る」で進める。
 
-選んだ seed の SKILL.md をコピーし、フェーズ構成・テンプレートパス・用語をこのプロジェクトの実態に合わせて書き換えたプロジェクト専用 skill を作る（Phase 1 は完了済みのため削除する。元の seed はアーカイブ候補とする）。
+`has_frontend: true` の場合は、UC ファイルに画面レイアウトセクションを含める旨を専用スキルに明記する。
 
 4. ユーザーに確認・承認を得る
 
@@ -88,6 +89,19 @@ Phase 6: セットアップ専用 skill のアーカイブ提案
 3. **言語・型固有ルール**: `<your-language-and-type-rules>` を言語・フレームワークに合わせた具体的なルールに書き換える
 4. **プロジェクト構造**: `<your-project-structure>` を `folder_structure` の実際のディレクトリ構成に書き換える
 
+### リファレンス URL の登録
+
+`.spec-runner/references/resources.md` に、このプロジェクトで使う公式ドキュメントの URL を登録する。
+
+1. ユーザーに以下を確認する:
+   - 言語・フレームワーク・ツールの公式ドキュメント URL
+   - 参考にしているサンプルリポジトリ・リファレンス実装
+   - API 仕様（OpenAPI など）
+   - 社内 Wiki・Notion などの内部ドキュメント
+   - その他ベストプラクティス記事・移行ガイドなど
+2. 教えてもらった情報を名前・カテゴリとともに `.spec-runner/references/resources.md` の該当テーブルに書き込む
+3. ユーザーが追加を終えたら次へ進む
+
 ### その他の基盤 skill
 
 同様のプレースホルダーや汎用記述が他の skill にあれば、同じ要領で書き換える。
@@ -109,8 +123,7 @@ Phase 6: セットアップ専用 skill のアーカイブ提案
 |---|---|
 | `architecture-definition` | 新規プロジェクト初期化専用。アーキテクチャ確定後は不要 |
 | `existing-project-to-docs` | 既存プロジェクト取り込み専用。docs 生成後は不要 |
-| `ddd-seed` | style: ddd で seed 使用後は不要。ただし `architecture-definition` も同時アーカイブする場合のみ `templates/01_要件定義/` を削除可 |
-| `simple-seed` | style: layered で seed 使用後は不要 |
+| `ddd-seed` / `simple-seed` | プロジェクト専用スキル作成後は不要 |
 | `architecture-skill-development`（このファイル自身） | project 専用 skill が安定したら不要。アーキテクチャ大変更時は再利用可 |
 
 ### 手順
