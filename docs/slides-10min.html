@@ -44,7 +44,7 @@
   }
   .slide.active { opacity: 1; pointer-events: auto; }
 
-  /* ── Footer (persistent) ── */
+  /* ── Footer ── */
   .footer {
     position: absolute;
     bottom: 0; left: 0; right: 0;
@@ -67,7 +67,7 @@
     flex-direction: column;
     justify-content: center;
   }
-  .inner.top { justify-content: flex-start; padding-top: 44px; }
+  .inner.top { justify-content: flex-start; padding-top: 40px; }
 
   /* ── Label ── */
   .label {
@@ -76,9 +76,9 @@
     letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--red);
-    margin-bottom: 16px;
+    margin-bottom: 14px;
   }
-  .label.blue { color: var(--blue); }
+  .label.blue  { color: var(--blue); }
   .label.green { color: var(--green); }
   .label.muted { color: var(--muted); }
 
@@ -90,8 +90,6 @@
     line-height: 0.92;
     color: var(--ink);
   }
-  h1 .red { color: var(--red); }
-
   h2 {
     font-size: 46px;
     font-weight: 900;
@@ -99,148 +97,26 @@
     line-height: 1.1;
     color: var(--ink);
   }
-  h2 .red { color: var(--red); }
-  h2 .blue { color: var(--blue); }
+  h2 .red   { color: var(--red); }
+  h2 .blue  { color: var(--blue); }
   h2 .green { color: var(--green); }
+  h3 { font-size: 16px; font-weight: 800; color: var(--ink); margin-bottom: 6px; }
 
-  h3 {
-    font-size: 18px;
-    font-weight: 800;
-    color: var(--ink);
-    margin-bottom: 8px;
-  }
-
-  .body {
-    font-size: 22px;
-    line-height: 1.65;
-    color: var(--muted);
-    margin-top: 16px;
-  }
+  .body { font-size: 22px; line-height: 1.65; color: var(--muted); margin-top: 16px; }
   .body strong { color: var(--ink); }
 
-  .small-body {
-    font-size: 16px;
-    line-height: 1.7;
-    color: var(--muted);
-  }
-  .small-body strong { color: var(--ink); }
-
   /* ── Divider ── */
-  .rule {
-    width: 48px;
-    height: 3px;
-    background: var(--ink);
-    margin: 20px 0;
-  }
+  .rule { width: 48px; height: 3px; background: var(--ink); margin: 20px 0; }
   .rule.red { background: var(--red); }
-
-  /* ── Two-col ── */
-  .cols2 {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 28px;
-  }
-  .cols3 {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 20px;
-  }
-
-  /* ── Card ── */
-  .card {
-    background: var(--light);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px 22px;
-  }
-  .card-title {
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 10px;
-  }
-
-  /* ── Problem items ── */
-  .prob-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 12px;
-  }
-  .prob-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 14px 18px;
-    background: var(--light);
-    border-left: 3px solid var(--red);
-  }
-  .prob-icon {
-    font-size: 18px;
-    line-height: 1.4;
-    flex-shrink: 0;
-  }
-  .prob-text {
-    font-size: 16px;
-    line-height: 1.5;
-    color: var(--ink);
-  }
-  .prob-text .sub {
-    font-size: 13px;
-    color: var(--muted);
-    display: block;
-    margin-top: 2px;
-  }
-
-  /* ── Solution items ── */
-  .sol-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 12px;
-  }
-  .sol-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 14px 18px;
-    border-left: 3px solid var(--blue);
-    background: #f0f5ff;
-  }
-  .sol-item.green { border-left-color: var(--green); background: #f0fdf4; }
-  .sol-num {
-    font-size: 11px;
-    font-weight: 800;
-    color: var(--blue);
-    background: #dbeafe;
-    padding: 3px 8px;
-    border-radius: 3px;
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-  .sol-item.green .sol-num { color: var(--green); background: #dcfce7; }
-  .sol-text {
-    font-size: 16px;
-    line-height: 1.5;
-    color: var(--ink);
-  }
-  .sol-text .sub {
-    font-size: 13px;
-    color: var(--muted);
-    display: block;
-    margin-top: 3px;
-  }
 
   /* ── Code ── */
   pre {
     font-family: 'SF Mono', 'Fira Code', monospace;
-    font-size: 14px;
-    line-height: 1.7;
+    font-size: 12.5px;
+    line-height: 1.65;
     background: var(--ink);
     color: #ccc;
-    padding: 18px 22px;
+    padding: 16px 20px;
     border-radius: 6px;
   }
   .k { color: #f87171; }
@@ -248,24 +124,19 @@
   .c { color: #555; }
   .ok { color: #4ade80; }
 
-  /* ── Mechanism ── */
-  .mech {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 16px;
-  }
+  /* ── Mechanism table ── */
+  .mech { display: flex; flex-direction: column; gap: 7px; margin-top: 14px; }
   .mech-row {
     display: grid;
-    grid-template-columns: 180px 1fr;
-    border-radius: 6px;
+    grid-template-columns: 200px 1fr;
+    border-radius: 5px;
     overflow: hidden;
     border: 1px solid var(--border);
   }
   .mech-key {
     background: var(--ink);
     color: #fff;
-    padding: 10px 14px;
+    padding: 9px 14px;
     font-family: 'SF Mono', monospace;
     font-size: 12px;
     font-weight: 600;
@@ -274,114 +145,62 @@
   }
   .mech-val {
     background: var(--light);
-    padding: 10px 16px;
-    font-size: 14px;
+    padding: 9px 16px;
+    font-size: 13.5px;
     color: var(--muted);
     display: flex;
     align-items: center;
+    line-height: 1.4;
   }
   .mech-val strong { color: var(--ink); }
 
   /* ── Stats ── */
-  .stat-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 16px;
-    margin-top: 24px;
-  }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 24px; }
   .stat-card {
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 22px 20px;
     text-align: center;
-    background: var(--bg);
   }
-  .stat-card .num {
-    font-size: 52px;
-    font-weight: 900;
-    letter-spacing: -0.04em;
-    color: var(--green);
-    line-height: 1;
-  }
+  .stat-card .num { font-size: 52px; font-weight: 900; letter-spacing: -0.04em; color: var(--green); line-height: 1; }
   .stat-card .unit { font-size: 18px; color: var(--muted); }
-  .stat-card .desc {
-    font-size: 13px;
-    color: var(--muted);
-    margin-top: 8px;
-    line-height: 1.5;
-  }
+  .stat-card .desc { font-size: 13px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
 
   /* ── Era ── */
-  .era-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 14px;
-    margin-top: 20px;
-  }
-  .era-card {
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 18px 20px;
-    background: var(--light);
-  }
-  .era-card.now {
-    background: var(--ink);
-    border-color: var(--ink);
-  }
-  .era-num {
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 6px;
-  }
+  .era-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 20px; }
+  .era-card { border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; background: var(--light); }
+  .era-card.now { background: var(--ink); border-color: var(--ink); }
+  .era-num { font-size: 10px; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
   .era-card.now .era-num { color: rgba(255,255,255,0.4); }
   .era-card h3 { font-size: 15px; margin-bottom: 6px; color: var(--ink); }
   .era-card.now h3 { color: #fff; }
   .era-card p { font-size: 12px; color: var(--muted); line-height: 1.5; }
   .era-card.now p { color: rgba(255,255,255,0.5); }
-  .verdict {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 10px;
-    border-radius: 20px;
-    margin-top: 10px;
-  }
+  .verdict { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; margin-top: 10px; }
   .verdict.fail { background: rgba(230,51,41,0.1); color: var(--red); border: 1px solid rgba(230,51,41,0.25); }
   .verdict.pass { background: rgba(22,163,74,0.1); color: var(--green); border: 1px solid rgba(22,163,74,0.25); }
   .verdict.pass.inv { background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.2); }
 
-  /* ── Flow ── */
-  .flow {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    margin: 20px 0;
-  }
-  .flow-step {
-    flex: 1;
-    background: var(--light);
+  /* ── Before/After ── */
+  .vs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin-top: 18px;
     border: 1px solid var(--border);
-    border-right: none;
-    padding: 12px 10px;
-    text-align: center;
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--ink);
-    line-height: 1.3;
+    border-radius: 8px;
+    overflow: hidden;
   }
-  .flow-step:first-child { border-radius: 6px 0 0 6px; }
-  .flow-step:last-child { border-right: 1px solid var(--border); border-radius: 0 6px 6px 0; }
-  .flow-arrow {
-    width: 0; height: 0;
-    border-top: 16px solid transparent;
-    border-bottom: 16px solid transparent;
-    border-left: 12px solid var(--border);
-    flex-shrink: 0;
-    z-index: 1;
-  }
+  .vs-col { padding: 18px 22px; }
+  .vs-col:first-child { border-right: 1px solid var(--border); background: #fff5f5; }
+  .vs-col:last-child  { background: #f0fdf4; }
+  .vs-head { font-size: 11px; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 10px; }
+  .vs-head.red   { color: var(--red); }
+  .vs-head.green { color: var(--green); }
+  .vs-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  .vs-list li { font-size: 14px; color: var(--ink); padding-left: 18px; position: relative; line-height: 1.4; }
+  .vs-list li::before { position: absolute; left: 0; font-size: 12px; }
+  .vs-col:first-child .vs-list li::before { content: '✕'; color: var(--red); }
+  .vs-col:last-child  .vs-list li::before { content: '✓'; color: var(--green); }
 
   /* ── Title slide ── */
   .slide-title { flex-direction: row; }
@@ -394,71 +213,22 @@
     border-right: 1px solid var(--border);
   }
   .t-right {
-    width: 320px;
+    width: 300px;
     background: var(--ink);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 24px;
-    padding: 40px 32px;
+    gap: 22px;
+    padding: 40px 28px;
   }
   .t-stat { text-align: center; }
-  .t-stat .n {
-    font-size: 52px;
-    font-weight: 900;
-    letter-spacing: -0.04em;
-    color: #fff;
-    line-height: 1;
-    display: block;
-  }
-  .t-stat .u {
-    font-size: 12px;
-    color: rgba(255,255,255,0.45);
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    display: block;
-    margin-top: 4px;
-  }
-  .t-divider { width: 32px; height: 1px; background: rgba(255,255,255,0.15); }
-
-  /* ── Big quote slide ── */
-  .slide-quote {
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 52px 80px;
-  }
-  .quote-text {
-    font-size: 42px;
-    font-weight: 900;
-    letter-spacing: -0.03em;
-    line-height: 1.3;
-    color: var(--ink);
-  }
-  .quote-text .red { color: var(--red); }
-  .quote-sub {
-    font-size: 20px;
-    color: var(--muted);
-    margin-top: 20px;
-    line-height: 1.5;
-  }
-
-  /* ── Highlight box ── */
-  .hbox {
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-    border-left: 3px solid var(--blue);
-    border-radius: 0 6px 6px 0;
-    padding: 16px 20px;
-    margin-top: 16px;
-  }
-  .hbox p { font-size: 18px; line-height: 1.6; color: var(--ink); }
+  .t-stat .n  { font-size: 52px; font-weight: 900; letter-spacing: -0.04em; color: #fff; line-height: 1; display: block; }
+  .t-stat .u  { font-size: 12px; color: rgba(255,255,255,0.45); font-weight: 600; letter-spacing: 0.06em; display: block; margin-top: 4px; }
+  .t-divider  { width: 32px; height: 1px; background: rgba(255,255,255,0.15); }
 
   /* ── End slide ── */
-  .slide-end {
-    background: var(--ink);
-  }
+  .slide-end { background: var(--ink); }
   .end-inner {
     flex: 1;
     display: flex;
@@ -469,10 +239,10 @@
     padding: 40px 64px 52px;
     gap: 8px;
   }
-  .end-pre { font-size: 16px; color: rgba(255,255,255,0.3); letter-spacing: 0.05em; margin-bottom: 8px; }
-  .end-l1 { font-size: 46px; font-weight: 900; letter-spacing: -0.03em; color: #fff; line-height: 1.15; }
-  .end-l2 { font-size: 46px; font-weight: 900; letter-spacing: -0.03em; color: var(--red); line-height: 1.15; margin-bottom: 24px; }
-  .end-cmd {
+  .end-pre  { font-size: 16px; color: rgba(255,255,255,0.3); letter-spacing: 0.05em; margin-bottom: 8px; }
+  .end-l1   { font-size: 46px; font-weight: 900; letter-spacing: -0.03em; color: #fff; line-height: 1.15; }
+  .end-l2   { font-size: 46px; font-weight: 900; letter-spacing: -0.03em; color: var(--red); line-height: 1.15; margin-bottom: 24px; }
+  .end-cmd  {
     font-family: 'SF Mono', monospace;
     font-size: 16px;
     color: rgba(255,255,255,0.4);
@@ -483,56 +253,51 @@
     display: inline-block;
     margin-bottom: 20px;
   }
-  .end-next {
-    font-size: 14px;
-    color: rgba(255,255,255,0.3);
-    line-height: 1.7;
-  }
+  .end-next { font-size: 14px; color: rgba(255,255,255,0.3); line-height: 1.7; }
   .end-next strong { color: rgba(255,255,255,0.6); }
 
-  /* ── Problem vs Solution two col ── */
-  .vs-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-    margin-top: 20px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  .vs-col { padding: 20px 24px; }
-  .vs-col:first-child { border-right: 1px solid var(--border); background: #fff5f5; }
-  .vs-col:last-child { background: #f0fdf4; }
-  .vs-head {
+  /* ── Tag badge ── */
+  .tag {
+    display: inline-block;
     font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    margin-bottom: 12px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
   }
-  .vs-head.red { color: var(--red); }
-  .vs-head.green { color: var(--green); }
-  .vs-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-  .vs-list li { font-size: 14px; color: var(--ink); padding-left: 18px; position: relative; line-height: 1.4; }
-  .vs-list li::before { position: absolute; left: 0; font-size: 12px; }
-  .vs-col:first-child .vs-list li::before { content: '✕'; color: var(--red); }
-  .vs-col:last-child .vs-list li::before { content: '✓'; color: var(--green); }
+  .tag.blue  { background: #dbeafe; color: var(--blue); }
+  .tag.green { background: #dcfce7; color: var(--green); }
+  .tag.red   { background: #fee2e2; color: var(--red); }
+  .tag.ink   { background: var(--ink); color: #fff; }
+
+  /* ── Flow strip ── */
+  .flow-strip { display: flex; align-items: stretch; gap: 0; margin-top: 18px; }
+  .flow-box {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-right: none;
+    padding: 12px 10px;
+    text-align: center;
+    background: var(--light);
+  }
+  .flow-box:first-child { border-radius: 6px 0 0 6px; }
+  .flow-box:last-child  { border-right: 1px solid var(--border); border-radius: 0 6px 6px 0; }
+  .flow-box .fb-num { font-size: 10px; font-weight: 800; color: var(--muted); letter-spacing: 0.1em; }
+  .flow-box .fb-title { font-size: 13px; font-weight: 800; color: var(--ink); margin: 4px 0; line-height: 1.2; }
+  .flow-box .fb-sub { font-size: 10.5px; color: var(--muted); line-height: 1.4; }
+  .flow-box.accent { background: var(--ink); border-color: var(--ink); }
+  .flow-box.accent .fb-num { color: rgba(255,255,255,0.35); }
+  .flow-box.accent .fb-title { color: #fff; }
+  .flow-box.accent .fb-sub { color: rgba(255,255,255,0.4); }
+  .flow-arr {
+    display: flex; align-items: center; padding: 0 2px;
+    font-size: 14px; color: #bbb; flex-shrink: 0;
+  }
 
   /* ── Controls ── */
-  #controls {
-    margin-top: 12px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
+  #controls { margin-top: 12px; display: flex; align-items: center; gap: 12px; }
   #progress { display: flex; gap: 5px; }
-  .dot {
-    width: 18px; height: 3px;
-    background: #ccc;
-    cursor: pointer;
-    border-radius: 2px;
-    transition: all 0.2s;
-  }
+  .dot { width: 18px; height: 3px; background: #ccc; cursor: pointer; border-radius: 2px; transition: all 0.2s; }
   .dot.active { background: var(--ink); width: 28px; }
   #counter { font-size: 11px; color: #999; font-variant-numeric: tabular-nums; }
   .hint { font-size: 11px; color: #ccc; }
@@ -541,22 +306,22 @@
 <body>
 <div id="deck">
 
-  <!-- ── 01 TITLE ──────────────────────────────
-       フック: 実績の数字から始める
-  ─────────────────────────────────────────── -->
+  <!-- ═══ 01 TITLE ═══════════════════════════════════════════════════════ -->
   <div class="slide slide-title active" data-n="1">
     <div class="t-left">
       <div>
-        <div class="label">2ヶ月で作ったAI駆動開発ハーネス</div>
-        <h1>spec-<br>runner</h1>
-        <p class="body" style="margin-top:16px; font-size:18px;">整合性駆動開発 — 設計書とコードの<br>不変条件を機械的に強制するツール</p>
+        <div style="font-size:11px; font-weight:800; letter-spacing:0.2em; color:var(--muted); text-transform:uppercase; margin-bottom:16px;">AI 駆動開発ハーネス</div>
+        <h1>spec<span style="color:var(--red);">-</span><br>runner</h1>
       </div>
-      <p style="font-size:13px; color:#ccc;">github.com/TEEE88/spec-runner</p>
+      <div>
+        <p style="font-size:17px; color:var(--muted); line-height:1.6; margin-bottom:20px;">AI が設計を飛ばして実装することを<br><strong style="color:var(--ink);">技術的に防ぐ</strong>ためのハーネスライブラリ</p>
+        <p style="font-size:13px; color:#bbb; font-family:'SF Mono',monospace;">$ npx spec-runner</p>
+      </div>
     </div>
     <div class="t-right">
       <div class="t-stat">
-        <span class="n">2h</span>
-        <span class="u">AIチャットシステム構築</span>
+        <span class="n">2<span style="font-size:26px;">h</span></span>
+        <span class="u">AI チャットシステムを構築</span>
       </div>
       <div class="t-divider"></div>
       <div class="t-stat">
@@ -566,7 +331,7 @@
       <div class="t-divider"></div>
       <div class="t-stat">
         <span class="n">1人</span>
-        <span class="u">ソロ開発でも機能した</span>
+        <span class="u">ソロ開発でも整合性を維持</span>
       </div>
     </div>
     <div class="footer">
@@ -575,14 +340,14 @@
     </div>
   </div>
 
-  <!-- ── 02 問題提起（全体） ─────────────────── -->
+  <!-- ═══ 02 PROBLEM — 速く作れる。でも保守できない ══════════════════════ -->
   <div class="slide" data-n="2">
     <div class="inner">
       <div class="label">AI 駆動開発の現実</div>
       <h2>速く作れる。<span class="red">でも保守できない。</span></h2>
-      <p class="body">AI は動くコードをすぐ生成する。でも後から触れないコードを量産しているだけかもしれない。</p>
-      <div class="rule red" style="margin-top:24px;"></div>
-      <p class="body" style="margin-top:0; font-size:18px; color:var(--muted);">この問題を解決しようと、<strong>2ヶ月かけてライブラリを作った。</strong></p>
+      <p class="body">AI は動くコードをすぐ生成する。<br>でも後から触れないコードを量産しているだけかもしれない。</p>
+      <div class="rule red" style="margin-top:28px;"></div>
+      <p class="body" style="font-size:18px; color:var(--muted); margin-top:0;">この問題を解決しようと、<strong>2ヶ月かけてライブラリを作った。</strong></p>
     </div>
     <div class="footer">
       <span class="footer-url">github.com/TEEE88/spec-runner</span>
@@ -590,29 +355,39 @@
     </div>
   </div>
 
-  <!-- ── 03 課題①: 保守性 ──────────────────── -->
+  <!-- ═══ 03 PROBLEMS — 7つの課題（1枚）══════════════════════════════════ -->
   <div class="slide" data-n="3">
     <div class="inner top">
-      <div class="label">課題 1 / 3</div>
-      <h2 style="font-size:38px;">ドキュメントがない → <span class="red">保守不能</span></h2>
-      <div class="prob-list">
-        <div class="prob-item">
-          <span class="prob-icon">📄</span>
-          <span class="prob-text">ドキュメントを作らないので、修正のたびにコードを全部調査しないといけない
-            <span class="sub">「このコードが何をしているか」を毎回ゼロから理解する</span>
-          </span>
+      <div class="label">AI 駆動開発の課題</div>
+      <h2 style="font-size:38px; margin-bottom:18px;">7つの課題</h2>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:7px 32px;">
+        <div style="display:flex; gap:10px; align-items:baseline;">
+          <span style="color:var(--red); font-weight:800; font-size:12px; flex-shrink:0;">①</span>
+          <span style="font-size:15px; color:var(--ink); line-height:1.4;">ドキュメントがなく保守不能<span style="font-size:12px; color:var(--muted); display:block;">修正のたびにコードを全部読む</span></span>
         </div>
-        <div class="prob-item">
-          <span class="prob-icon">🌀</span>
-          <span class="prob-text">完全 AI 任せだとアーキテクチャが崩壊する
-            <span class="sub">共通化なし・ハードコード多発・ロジック分散・責務が適当 → 後になるほど修正コストが増大</span>
-          </span>
+        <div style="display:flex; gap:10px; align-items:baseline;">
+          <span style="color:var(--red); font-weight:800; font-size:12px; flex-shrink:0;">⑤</span>
+          <span style="font-size:15px; color:var(--ink); line-height:1.4;">AI に毎回前提を説明する<span style="font-size:12px; color:var(--muted); display:block;">毎セッション「このシステムは…」を繰り返す</span></span>
         </div>
-        <div class="prob-item">
-          <span class="prob-icon">🤔</span>
-          <span class="prob-text">なぜこの設計にしたのかが記録されない
-            <span class="sub">後から「なぜこうなっているか」が誰にもわからない</span>
-          </span>
+        <div style="display:flex; gap:10px; align-items:baseline;">
+          <span style="color:var(--red); font-weight:800; font-size:12px; flex-shrink:0;">②</span>
+          <span style="font-size:15px; color:var(--ink); line-height:1.4;">アーキテクチャが崩壊する<span style="font-size:12px; color:var(--muted); display:block;">共通化なし・ハードコード多発・責務が適当</span></span>
+        </div>
+        <div style="display:flex; gap:10px; align-items:baseline;">
+          <span style="color:var(--red); font-weight:800; font-size:12px; flex-shrink:0;">⑥</span>
+          <span style="font-size:15px; color:var(--ink); line-height:1.4;">コマンドを覚えて自分で打つ<span style="font-size:12px; color:var(--muted); display:block;">既存ツールは手動コマンド選択が必要</span></span>
+        </div>
+        <div style="display:flex; gap:10px; align-items:baseline;">
+          <span style="color:var(--red); font-weight:800; font-size:12px; flex-shrink:0;">③</span>
+          <span style="font-size:15px; color:var(--ink); line-height:1.4;">設計判断が記録されない<span style="font-size:12px; color:var(--muted); display:block;">なぜこの設計にしたかが誰にもわからない</span></span>
+        </div>
+        <div style="display:flex; gap:10px; align-items:baseline;">
+          <span style="color:var(--red); font-weight:800; font-size:12px; flex-shrink:0;">⑦</span>
+          <span style="font-size:15px; color:var(--ink); line-height:1.4;">テストを後から書いても無意味<span style="font-size:12px; color:var(--muted); display:block;">既存挙動の確認にしかならない</span></span>
+        </div>
+        <div style="display:flex; gap:10px; align-items:baseline;">
+          <span style="color:var(--red); font-weight:800; font-size:12px; flex-shrink:0;">④</span>
+          <span style="font-size:15px; color:var(--ink); line-height:1.4;">影響範囲がわからない<span style="font-size:12px; color:var(--muted); display:block;">修正後どこかでエラーが起きていることが多い</span></span>
         </div>
       </div>
     </div>
@@ -622,30 +397,31 @@
     </div>
   </div>
 
-  <!-- ── 04 課題②: スピードの罠 ─────────────── -->
+  <!-- ═══ 04 WHAT IS spec-runner ══════════════════════════════════════════ -->
   <div class="slide" data-n="4">
     <div class="inner top">
-      <div class="label">課題 2 / 3</div>
-      <h2 style="font-size:38px;">AI の<span class="red">速さ</span>が影響範囲を隠す</h2>
-      <div class="prob-list">
-        <div class="prob-item">
-          <span class="prob-icon">💥</span>
-          <span class="prob-text">何かを修正したときに影響範囲がわからない
-            <span class="sub">「実際に動かして確認する」しかない → どこかでエラーが起きていることが多い</span>
-          </span>
+      <div class="label">spec-runner とは</div>
+      <h2 style="font-size:36px; margin-bottom:20px;">AI が設計を飛ばすことを<span class="red">技術的に防ぐ</span>システム</h2>
+      <div class="mech">
+        <div class="mech-row">
+          <span class="mech-key">スキル 12種</span>
+          <span class="mech-val">開発フローを定義。<strong>docs/ の有無で自動起動</strong>。プロジェクト専用スキルも自動生成</span>
         </div>
-        <div class="prob-item">
-          <span class="prob-icon">🔍</span>
-          <span class="prob-text">影響範囲の調査に時間がかかる
-            <span class="sub">ドキュメントやコードを一から全部読み込んでいく → AI も同じく全部読む</span>
-          </span>
+        <div class="mech-row">
+          <span class="mech-key">サブエージェント 3種</span>
+          <span class="mech-val"><strong>@test-runner</strong>（TDD 強制）/ <strong>@design-reviewer</strong>（設計⇔実装検証）/ <strong>@analyze-impact</strong>（影響算出）</span>
         </div>
-        <div class="prob-item">
-          <span class="prob-icon">🤖</span>
-          <span class="prob-text">AI に毎回前提を説明しないといけない
-            <span class="sub">「このシステムはこういう設計で…」を毎セッション繰り返す</span>
-          </span>
+        <div class="mech-row">
+          <span class="mech-key">ルール 2種</span>
+          <span class="mech-val"><strong>coding.md</strong>（命名・型・テスト規約）/ <strong>design-docs.md</strong>（設計書フォーマット・フェーズ管理）</span>
         </div>
+        <div class="mech-row">
+          <span class="mech-key">scan.js + hooks</span>
+          <span class="mech-val">Edit/Write のたびに <strong>maps_to の整合性を自動検証</strong>。ズレたら exit 1</span>
+        </div>
+      </div>
+      <div style="margin-top:16px; padding:12px 18px; background:var(--light); border-radius:6px; border-left:3px solid var(--ink);">
+        <p style="font-size:14px; color:var(--muted); line-height:1.6;">Claude Code と GitHub Copilot の<strong style="color:var(--ink);">両方に対応</strong>。<code style="font-size:12px; background:var(--border); padding:1px 6px; border-radius:3px;">npx spec-runner</code> 1コマンドで <code style="font-size:12px;">.claude/</code> と <code style="font-size:12px;">.github/instructions/</code> に同じルール・スキルを展開</p>
       </div>
     </div>
     <div class="footer">
@@ -654,30 +430,47 @@
     </div>
   </div>
 
-  <!-- ── 05 課題③: 既存ツール ──────────────── -->
+  <!-- ═══ 05 解決① — maps_to + scan.js + @design-reviewer ══════════════ -->
   <div class="slide" data-n="5">
     <div class="inner top">
-      <div class="label">課題 3 / 3</div>
-      <h2 style="font-size:38px;">既存ツールは<span class="red">使いにくい</span></h2>
-      <div class="prob-list">
-        <div class="prob-item">
-          <span class="prob-icon">⌨️</span>
-          <span class="prob-text">コマンドを覚えて自分で打たないといけない
-            <span class="sub">仕様駆動開発のライブラリは、手動でコマンドを選ぶ手間がある</span>
-          </span>
+      <div class="label blue">解決 1 — 整合性の自動検証</div>
+      <h2 style="font-size:36px; margin-bottom:16px;">設計書とコードを<span class="blue">常に一対に保つ</span></h2>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
+        <div>
+          <div class="mech">
+            <div class="mech-row">
+              <span class="mech-key">maps_to</span>
+              <span class="mech-val">設計書 → 実装ファイルの<strong>対応を宣言</strong></span>
+            </div>
+            <div class="mech-row">
+              <span class="mech-key">scan.js + hooks</span>
+              <span class="mech-val">Edit/Write → 実在チェック → なければ <strong>exit 1</strong></span>
+            </div>
+            <div class="mech-row">
+              <span class="mech-key">@design-reviewer</span>
+              <span class="mech-val">責務・入出力の<strong>意味的整合</strong>をエージェントが確認</span>
+            </div>
+          </div>
+          <div style="margin-top:14px; padding:10px 14px; background:#eff6ff; border-radius:5px; border-left:3px solid var(--blue);">
+            <p style="font-size:13px; color:var(--ink); line-height:1.6;">設計書を変えずにコードを変えた瞬間、<br><strong>自動で検知される</strong></p>
+          </div>
         </div>
-        <div class="prob-item">
-          <span class="prob-icon">🔤</span>
-          <span class="prob-text">生成されるドキュメントが英語ファイル名・詳細すぎる
-            <span class="sub">日本語チームには読みにくい。内容が多すぎて見切れない</span>
-          </span>
-        </div>
-        <div class="prob-item">
-          <span class="prob-icon">🧪</span>
-          <span class="prob-text">テストを後から書いても「既存挙動の確認」にしかならない
-            <span class="sub">先に書かないとバグを検出する力がない</span>
-          </span>
-        </div>
+        <pre>---
+spec_runner:
+  <span class="k">node_id</span>: <span class="v">detail.usecase.注文確定</span>
+  <span class="k">kind</span>: <span class="v">detailed_design</span>
+  <span class="k">depends_on</span>:
+    - <span class="v">overview.use_case_list</span>
+    - <span class="v">detail.domain.注文</span>
+  <span class="k">maps_to</span>:
+    - <span class="v">src/order/confirm.py</span>    <span class="c">← 宣言</span>
+    - <span class="v">tests/order/test_confirm.py</span>
+---
+
+<span class="c"># Edit/Write のたびに自動実行</span>
+<span class="ok">✓</span> src/order/confirm.py ... exists
+<span class="ok">✓</span> tests/order/test_confirm.py ... exists
+<span class="c"># 存在しなければ exit 1 でブロック</span></pre>
       </div>
     </div>
     <div class="footer">
@@ -686,188 +479,48 @@
     </div>
   </div>
 
-  <!-- ── 06 課題まとめ ─────────────────────── -->
+  <!-- ═══ 06 解決② — graph.json + @analyze-impact ══════════════════════ -->
   <div class="slide" data-n="6">
-    <div class="inner">
-      <div class="label">課題まとめ</div>
-      <h2>AI 駆動開発の<span class="red">7つの課題</span></h2>
-      <div class="vs-grid" style="display:block; background:var(--light); border-radius:8px; padding:20px 24px; margin-top:20px;">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 32px;">
-          <div style="font-size:15px; color:var(--ink); padding-left:20px; position:relative; line-height:1.5;">
-            <span style="position:absolute; left:0; color:var(--red); font-weight:700;">✕</span>ドキュメントがなく保守不能
-          </div>
-          <div style="font-size:15px; color:var(--ink); padding-left:20px; position:relative; line-height:1.5;">
-            <span style="position:absolute; left:0; color:var(--red); font-weight:700;">✕</span>影響範囲がわからない
-          </div>
-          <div style="font-size:15px; color:var(--ink); padding-left:20px; position:relative; line-height:1.5;">
-            <span style="position:absolute; left:0; color:var(--red); font-weight:700;">✕</span>アーキテクチャが崩壊する
-          </div>
-          <div style="font-size:15px; color:var(--ink); padding-left:20px; position:relative; line-height:1.5;">
-            <span style="position:absolute; left:0; color:var(--red); font-weight:700;">✕</span>AI に毎回前提を説明する
-          </div>
-          <div style="font-size:15px; color:var(--ink); padding-left:20px; position:relative; line-height:1.5;">
-            <span style="position:absolute; left:0; color:var(--red); font-weight:700;">✕</span>設計判断が記録されない
-          </div>
-          <div style="font-size:15px; color:var(--ink); padding-left:20px; position:relative; line-height:1.5;">
-            <span style="position:absolute; left:0; color:var(--red); font-weight:700;">✕</span>コマンドを覚えないといけない
-          </div>
-          <div style="font-size:15px; color:var(--ink); padding-left:20px; position:relative; line-height:1.5;">
-            <span style="position:absolute; left:0; color:var(--red); font-weight:700;">✕</span>テストを後から書いても意味がない
-          </div>
-        </div>
-      </div>
-      <p class="body" style="margin-top:24px;">これを解決するために <strong>2ヶ月かけて spec-runner を作った</strong></p>
-    </div>
-    <div class="footer">
-      <span class="footer-url">github.com/TEEE88/spec-runner</span>
-      <span class="footer-slide"></span>
-    </div>
-  </div>
-
-  <!-- ── 07 解決①: 自動起動 ─────────────────── -->
-  <div class="slide" data-n="7">
     <div class="inner top">
-      <div class="label blue">解決 1 — コマンドを打たせない</div>
-      <h2 style="font-size:38px;"><span class="blue">自動で</span>最適なフローを選ぶ</h2>
-      <div class="sol-list">
-        <div class="sol-item">
-          <span class="sol-num">AUTO</span>
-          <span class="sol-text">Claude Code 起動時に <code style="background:var(--light); padding:2px 6px; border-radius:3px; font-size:13px;">docs/</code> の有無を判定して自動起動
-            <span class="sub">新規プロジェクト → architecture-definition を起動 / 既存 → existing-project-to-docs を起動</span>
-          </span>
-        </div>
-        <div class="sol-item">
-          <span class="sol-num">SKILL</span>
-          <span class="sol-text">状況に応じて最適なスキルを AI が選ぶ
-            <span class="sub">ユーザーは「何を作りたいか」だけ言えばいい。コマンドを覚える必要はない</span>
-          </span>
-        </div>
-        <div class="sol-item">
-          <span class="sol-num">ARCH</span>
-          <span class="sol-text">architecture.yaml でアーキテクチャ設計契約を記録
-            <span class="sub">DDD / レイヤード / プラグイン型 → それぞれ専用スキルを自動生成</span>
-          </span>
-        </div>
-      </div>
-    </div>
-    <div class="footer">
-      <span class="footer-url">github.com/TEEE88/spec-runner</span>
-      <span class="footer-slide"></span>
-    </div>
-  </div>
-
-  <!-- ── 08 解決②: ドキュメント設計 ────────── -->
-  <div class="slide" data-n="8">
-    <div class="inner top">
-      <div class="label blue">解決 2 — ドキュメント設計</div>
-      <h2 style="font-size:38px;"><span class="blue">日本語・階層・テンプレート</span></h2>
-      <div class="cols2" style="margin-top:16px; gap:20px;">
-        <div>
-          <div class="sol-list">
-            <div class="sol-item">
-              <span class="sol-num">構造</span>
-              <span class="sol-text">要件定義 → 概要設計 → 詳細設計の3層。上から順に読めば全体がわかる</span>
-            </div>
-            <div class="sol-item">
-              <span class="sol-num">日本語</span>
-              <span class="sol-text">ファイル名・フォルダ名を日本語に統一。チームが迷わない</span>
-            </div>
-            <div class="sol-item">
-              <span class="sol-num">粒度</span>
-              <span class="sol-text">ドキュメントにコードを書かない。<strong>振る舞いだけ</strong>を記述する</span>
-            </div>
-          </div>
-        </div>
-        <pre style="font-size:13px; align-self:center;"><span class="c">docs/</span>
-<span class="ok">├── 01_要件定義/</span>
-<span class="ok">│   └── 要件定義.md</span>
-<span class="ok">├── 02_概要設計/</span>
-<span class="ok">│   ├── ユースケース一覧.md</span>
-<span class="ok">│   ├── システム全体俯瞰.md</span>
-<span class="ok">│   └── 90_ADR/</span>       <span class="c">← 設計判断を記録</span>
-<span class="ok">└── 03_詳細設計/</span>
-<span class="ok">    └── src/**</span>         <span class="c">← src/ をミラー</span></pre>
-      </div>
-    </div>
-    <div class="footer">
-      <span class="footer-url">github.com/TEEE88/spec-runner</span>
-      <span class="footer-slide"></span>
-    </div>
-  </div>
-
-  <!-- ── 09 解決③: 整合性駆動 ──────────────── -->
-  <div class="slide" data-n="9">
-    <div class="inner top">
-      <div class="label blue">解決 3 — 整合性駆動開発</div>
-      <h2 style="font-size:38px;">ドキュメントとコードを<span class="blue">常に一対に</span></h2>
-      <div class="cols2" style="margin-top:16px; gap:20px;">
-        <div class="mech">
-          <div class="mech-row">
-            <span class="mech-key">maps_to</span>
-            <span class="mech-val">設計書 ↔ コードの対応を<strong>宣言する</strong></span>
-          </div>
-          <div class="mech-row">
-            <span class="mech-key">scan.js + hooks</span>
-            <span class="mech-val">Edit/Write のたびに実在を検証。なければ <strong>exit 1</strong></span>
-          </div>
-          <div class="mech-row">
-            <span class="mech-key">@design-reviewer</span>
-            <span class="mech-val">責務・入出力の意味的整合をエージェントが検証</span>
-          </div>
-          <div class="mech-row">
-            <span class="mech-key">TDD スキル</span>
-            <span class="mech-val">テストを先に書くことを<strong>強制する</strong></span>
-          </div>
-        </div>
-        <div class="hbox" style="background:#eff6ff; border-left-color:var(--blue);">
-          <p style="font-size:16px; line-height:1.7;">設計書が腐ったら<br><strong>自動で検知する。</strong><br><br>コードを先に変えることを<br><strong>構造的に防ぐ。</strong></p>
-        </div>
-      </div>
-    </div>
-    <div class="footer">
-      <span class="footer-url">github.com/TEEE88/spec-runner</span>
-      <span class="footer-slide"></span>
-    </div>
-  </div>
-
-  <!-- ── 10 解決④: 影響範囲 ─────────────────── -->
-  <div class="slide" data-n="10">
-    <div class="inner top">
-      <div class="label blue">解決 4 — 影響範囲の見える化</div>
-      <h2 style="font-size:38px;">このUCを修正すると<span class="blue">どこに影響するか</span>、即わかる</h2>
-      <div class="cols2" style="margin-top:16px; gap:20px; align-items:start;">
-        <div>
-          <div class="sol-list">
-            <div class="sol-item">
-              <span class="sol-num">宣言</span>
-              <span class="sol-text"><code style="font-size:12px; background:var(--light); padding:1px 5px;">depends_on</code> に依存する設計書を書く</span>
-            </div>
-            <div class="sol-item">
-              <span class="sol-num">自動</span>
-              <span class="sol-text">scan.js が graph.json に依存グラフを自動生成</span>
-            </div>
-            <div class="sol-item">
-              <span class="sol-num">追跡</span>
-              <span class="sol-text">design-change でこのグラフを辿り影響ドキュメント・コードを列挙</span>
-            </div>
-          </div>
-        </div>
-        <pre style="font-size:12px; align-self:start;"><span class="c">// graph.json（自動生成）</span>
+      <div class="label blue">解決 2 — 影響範囲の自動算出</div>
+      <h2 style="font-size:36px; margin-bottom:16px;">「このUCを変えると何が壊れるか」を<span class="blue">即答する</span></h2>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
+        <pre><span class="c">// .spec-runner/scan/graph.json（自動生成）</span>
 {
   <span class="k">"nodes"</span>: {
     <span class="v">"detail.usecase.注文確定"</span>: {
-      <span class="k">"depends_on"</span>: [
-        <span class="v">"overview.use_case_list"</span>,
-        <span class="v">"detail.domain.注文"</span>
-      ],
-      <span class="k">"maps_to"</span>: [
-        <span class="v">"src/order/confirm.py"</span>,
-        <span class="v">"tests/order/test_confirm.py"</span>
-      ]
+      <span class="k">"depends_on"</span>: [<span class="v">"overview.use_case_list"</span>],
+      <span class="k">"maps_to"</span>: [<span class="v">"src/order/confirm.py"</span>]
     }
   },
-  <span class="k">"reverse_index"</span>: { ... } <span class="c">← 上流を即追跡</span>
+  <span class="k">"reverse_index"</span>: {
+    <span class="v">"overview.use_case_list"</span>: [
+      <span class="v">"detail.usecase.注文確定"</span>,  <span class="c">← 依存元</span>
+      <span class="v">"detail.usecase.注文一覧"</span>
+    ]
+  },
+  <span class="k">"missing_maps_to"</span>: []  <span class="c">← ズレを記録</span>
 }</pre>
+        <div>
+          <div class="mech">
+            <div class="mech-row">
+              <span class="mech-key">depends_on 宣言</span>
+              <span class="mech-val">上流の設計書への依存を<strong>frontmatter に書く</strong></span>
+            </div>
+            <div class="mech-row">
+              <span class="mech-key">scan.js</span>
+              <span class="mech-val">Edit/Write のたびに <strong>graph.json を自動更新</strong></span>
+            </div>
+            <div class="mech-row">
+              <span class="mech-key">@analyze-impact</span>
+              <span class="mech-val">変更 node_id → <strong>直接・間接影響</strong>を reverse_index で即列挙</span>
+            </div>
+            <div class="mech-row">
+              <span class="mech-key">design-change</span>
+              <span class="mech-val">影響ドキュメントを確定してから次フェーズへ<strong>ゲート</strong></span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="footer">
@@ -876,11 +529,214 @@
     </div>
   </div>
 
-  <!-- ── 11 課題 vs 解決 まとめ ──────────────── -->
-  <div class="slide" data-n="11">
+  <!-- ═══ 07 解決③ — architecture-skill-development ════════════════════ -->
+  <div class="slide" data-n="7">
+    <div class="inner top">
+      <div class="label blue">解決 3 — プロジェクト専用スキルの自動生成</div>
+      <h2 style="font-size:34px; margin-bottom:16px;">汎用スキルは<span class="blue">土台</span>。<br>プロジェクト固有のフローを<span class="blue">自動で生やす</span></h2>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
+        <pre><span class="c"># .spec-runner/architecture/architecture.yaml</span>
+<span class="k">name</span>: <span class="v">AI Chat System</span>
+<span class="k">style</span>: <span class="v">ddd</span>          <span class="c">← DDD / layered / plugin</span>
+<span class="k">layers</span>:
+  - <span class="v">domain</span>
+  - <span class="v">usecase</span>
+  - <span class="v">infrastructure</span>
+<span class="k">frontend</span>: <span class="v">false</span>
+<span class="k">language</span>: <span class="v">python</span>
+
+<span class="c">↓ architecture-skill-development が読む</span>
+
+<span class="ok">.claude/skills/</span>
+<span class="ok">  └── ddd-seed/</span>        <span class="c">← 自動生成</span>
+<span class="ok">      ├── SKILL.md</span>
+<span class="ok">      └── templates/</span>
+<span class="ok">          └── 03_詳細設計/01_ドメイン/</span></pre>
+        <div>
+          <div style="margin-bottom:12px; padding:12px 16px; background:var(--light); border-radius:6px; border-left:3px solid var(--blue);">
+            <p style="font-size:13.5px; color:var(--ink); line-height:1.6;"><strong>汎用スキル</strong>はあくまで土台。<br><strong>architecture-skill-development</strong> が docs と architecture.yaml を読み、<br>そのプロジェクト固有の設計フロー・テンプレートを生成する</p>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <div style="padding:10px 12px; background:#eff6ff; border-radius:5px; text-align:center;">
+              <div style="font-size:10px; font-weight:800; color:var(--blue); letter-spacing:0.1em; margin-bottom:4px;">DDD</div>
+              <div style="font-size:12px; color:var(--ink);">ddd-seed<br>ドメイン層テンプレ</div>
+            </div>
+            <div style="padding:10px 12px; background:#eff6ff; border-radius:5px; text-align:center;">
+              <div style="font-size:10px; font-weight:800; color:var(--blue); letter-spacing:0.1em; margin-bottom:4px;">Layered</div>
+              <div style="font-size:12px; color:var(--ink);">simple-seed<br>UC層テンプレ</div>
+            </div>
+            <div style="padding:10px 12px; background:#eff6ff; border-radius:5px; text-align:center;">
+              <div style="font-size:10px; font-weight:800; color:var(--blue); letter-spacing:0.1em; margin-bottom:4px;">Plugin</div>
+              <div style="font-size:12px; color:var(--ink);">plugin-development<br>参照実装フロー</div>
+            </div>
+            <div style="padding:10px 12px; background:#f0fdf4; border-radius:5px; text-align:center;">
+              <div style="font-size:10px; font-weight:800; color:var(--green); letter-spacing:0.1em; margin-bottom:4px;">既存 PJ</div>
+              <div style="font-size:12px; color:var(--ink);">existing-to-docs<br>リバース設計</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-slide"></span>
+    </div>
+  </div>
+
+  <!-- ═══ 08 解決④ — TDD + @test-runner ═══════════════════════════════════ -->
+  <div class="slide" data-n="8">
+    <div class="inner top">
+      <div class="label blue">解決 4 — TDD の「RED を目撃させる」</div>
+      <h2 style="font-size:36px; margin-bottom:16px;">テストが失敗することを<span class="blue">見ないと先に進めない</span></h2>
+      <div style="display:grid; grid-template-columns:3fr 2fr; gap:20px; align-items:start;">
+        <div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:14px;">
+            <div style="border:2px solid var(--red); border-radius:6px; padding:12px; text-align:center;">
+              <div style="font-size:10px; font-weight:800; color:var(--red); letter-spacing:0.1em; margin-bottom:6px;">① RED</div>
+              <div style="font-size:12.5px; color:var(--ink); line-height:1.5;">失敗するテストを書く</div>
+              <div style="margin-top:8px;"><span class="tag red">@test-runner 必須</span></div>
+              <div style="font-size:11px; color:var(--muted); margin-top:4px; line-height:1.4;">失敗を目撃しなければ<br>次のフェーズへ進めない</div>
+            </div>
+            <div style="border:2px solid var(--green); border-radius:6px; padding:12px; text-align:center;">
+              <div style="font-size:10px; font-weight:800; color:var(--green); letter-spacing:0.1em; margin-bottom:6px;">② GREEN</div>
+              <div style="font-size:12.5px; color:var(--ink); line-height:1.5;">通る最小コードを書く</div>
+              <div style="margin-top:8px;"><span class="tag green">@test-runner 必須</span></div>
+              <div style="font-size:11px; color:var(--muted); margin-top:4px; line-height:1.4;">既存テストも<br>全部通ることを確認</div>
+            </div>
+            <div style="border:2px solid var(--blue); border-radius:6px; padding:12px; text-align:center;">
+              <div style="font-size:10px; font-weight:800; color:var(--blue); letter-spacing:0.1em; margin-bottom:6px;">③ REFACTOR</div>
+              <div style="font-size:12.5px; color:var(--ink); line-height:1.5;">GREEN 後のみ<br>重複削除・命名改善</div>
+              <div style="margin-top:8px;"><span class="tag blue">GREEN 後のみ</span></div>
+              <div style="font-size:11px; color:var(--muted); margin-top:4px; line-height:1.4;">機能を変えない<br>リファクタのみ</div>
+            </div>
+          </div>
+          <div style="padding:10px 14px; background:#fee2e2; border-radius:5px; border-left:3px solid var(--red);">
+            <p style="font-size:13px; color:var(--ink); line-height:1.5;">最初から通るテスト = <strong>既存挙動の確認にしかならない</strong><br>→ @test-runner が判定し、テストを書き直させる</p>
+          </div>
+        </div>
+        <div>
+          <div class="mech">
+            <div class="mech-row">
+              <span class="mech-key">@test-runner</span>
+              <span class="mech-val">テスト実行 + <strong>失敗原因の分析</strong>まで自律実行</span>
+            </div>
+            <div class="mech-row">
+              <span class="mech-key">@code-reviewer</span>
+              <span class="mech-val">GREEN 後に<strong>命名・型・規約</strong>を自動チェック</span>
+            </div>
+            <div class="mech-row">
+              <span class="mech-key">TDD スキル</span>
+              <span class="mech-val">実装コードを書く<strong>前のテスト作成</strong>を強制</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-slide"></span>
+    </div>
+  </div>
+
+  <!-- ═══ 09 FLOW — 実際の開発フロー ══════════════════════════════════════ -->
+  <div class="slide" data-n="9">
+    <div class="inner top">
+      <div class="label">実際の開発フロー</div>
+      <h2 style="font-size:34px; margin-bottom:18px;">spec-runner を入れると<span class="red">こう動く</span></h2>
+
+      <div style="margin-bottom:10px;">
+        <div style="font-size:10px; font-weight:800; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); margin-bottom:7px;">Phase A — プロジェクト初期化（1回）</div>
+        <div class="flow-strip">
+          <div class="flow-box">
+            <div class="fb-num">①</div>
+            <div class="fb-title">npx spec-runner</div>
+            <div class="fb-sub">CLAUDE.md 自動生成<br>Claude/Copilot に注入</div>
+          </div>
+          <div class="flow-arr">›</div>
+          <div class="flow-box accent">
+            <div class="fb-num">②</div>
+            <div class="fb-title">architecture-definition</div>
+            <div class="fb-sub">docs/ なし → 自動起動<br>要件→概要→architecture.yaml</div>
+          </div>
+          <div class="flow-arr">›</div>
+          <div class="flow-box accent">
+            <div class="fb-num">③</div>
+            <div class="fb-title">architecture-skill-development</div>
+            <div class="fb-sub">architecture.yaml を読んで<br>プロジェクト専用スキルを生成</div>
+          </div>
+          <div class="flow-arr">›</div>
+          <div class="flow-box">
+            <div class="fb-num">④</div>
+            <div class="fb-title">専用スキル起動</div>
+            <div class="fb-sub">DDD/layered/plugin<br>に最適化されたフロー</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:10px;">
+        <div style="font-size:10px; font-weight:800; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); margin-bottom:7px;">Phase B — 日常開発ループ（繰り返し）</div>
+        <div class="flow-strip">
+          <div class="flow-box">
+            <div class="fb-num">⑤</div>
+            <div class="fb-title">詳細設計を書く</div>
+            <div class="fb-sub">maps_to / depends_on<br>を frontmatter に宣言</div>
+          </div>
+          <div class="flow-arr">›</div>
+          <div class="flow-box accent">
+            <div class="fb-num">⑥</div>
+            <div class="fb-title">TDD スキル</div>
+            <div class="fb-sub">RED → @test-runner<br>GREEN → @test-runner<br>REFACTOR → @code-reviewer</div>
+          </div>
+          <div class="flow-arr">›</div>
+          <div class="flow-box">
+            <div class="fb-num">⑦</div>
+            <div class="fb-title">commit スキル</div>
+            <div class="fb-sub">Conventional Commits<br>機密情報チェック込み</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:10px; font-weight:800; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); margin-bottom:7px;">Phase C — 設計変更（必要時）</div>
+        <div class="flow-strip">
+          <div class="flow-box accent">
+            <div class="fb-num">⑧</div>
+            <div class="fb-title">design-change スキル</div>
+            <div class="fb-sub">変更要求 → @analyze-impact<br>で影響範囲を即列挙</div>
+          </div>
+          <div class="flow-arr">›</div>
+          <div class="flow-box">
+            <div class="fb-num">⑨</div>
+            <div class="fb-title">ADR（3案比較）</div>
+            <div class="fb-sub">なぜこの設計にしたかを<br>3案比較で記録</div>
+          </div>
+          <div class="flow-arr">›</div>
+          <div class="flow-box">
+            <div class="fb-num">⑩</div>
+            <div class="fb-title">設計書を修正</div>
+            <div class="fb-sub">@design-reviewer で<br>設計⇔実装の整合を検証</div>
+          </div>
+          <div class="flow-arr">›</div>
+          <div class="flow-box accent">
+            <div class="fb-num">⑪</div>
+            <div class="fb-title">Phase B に戻る</div>
+            <div class="fb-sub">TDD ループで<br>実装・検証</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="footer">
+      <span class="footer-url">github.com/TEEE88/spec-runner</span>
+      <span class="footer-slide"></span>
+    </div>
+  </div>
+
+  <!-- ═══ 10 BEFORE/AFTER ══════════════════════════════════════════════════ -->
+  <div class="slide" data-n="10">
     <div class="inner top">
       <div class="label">Before / After</div>
-      <h2 style="font-size:36px; margin-bottom:16px;">7つの課題 → 7つの解決</h2>
+      <h2 style="font-size:36px; margin-bottom:4px;">7つの課題 → 7つの解決</h2>
       <div class="vs-grid">
         <div class="vs-col">
           <div class="vs-head red">Before</div>
@@ -897,13 +753,13 @@
         <div class="vs-col">
           <div class="vs-head green">After — spec-runner</div>
           <ul class="vs-list">
-            <li>日本語・階層・テンプレートで即参照</li>
+            <li>日本語・階層・テンプレートで即参照。AI が自律読み取り</li>
             <li>architecture.yaml で設計契約を固める</li>
-            <li>ADR で「なぜ」を記録する</li>
-            <li>maps_to + graph.json で自動追跡</li>
+            <li>ADR で「なぜ」を 3 案比較で記録</li>
+            <li>@analyze-impact が graph.json から即算出</li>
             <li>docs があれば AI が自分で読む</li>
-            <li>CLAUDE.md が自動で最適スキルを起動</li>
-            <li>TDD スキルで先に書くことを強制</li>
+            <li>CLAUDE.md が状況に応じてスキルを自動起動</li>
+            <li>TDD スキル + @test-runner が RED を目撃させる</li>
           </ul>
         </div>
       </div>
@@ -914,8 +770,8 @@
     </div>
   </div>
 
-  <!-- ── 12 実績 ──────────────────────────────── -->
-  <div class="slide" data-n="12">
+  <!-- ═══ 11 RESULTS ══════════════════════════════════════════════════════ -->
+  <div class="slide" data-n="11">
     <div class="inner">
       <div class="label green">Real Results</div>
       <h2>実際に<span class="green">試してみた</span></h2>
@@ -941,8 +797,8 @@
     </div>
   </div>
 
-  <!-- ── 13 変遷 ──────────────────────────────── -->
-  <div class="slide" data-n="13">
+  <!-- ═══ 12 ERAS ══════════════════════════════════════════════════════════ -->
+  <div class="slide" data-n="12">
     <div class="inner">
       <div class="label muted">2ヶ月の試行錯誤</div>
       <h2 style="font-size:38px;">3つの失敗から辿り着いた</h2>
@@ -974,15 +830,15 @@
     </div>
   </div>
 
-  <!-- ── 14 END ─────────────────────────────────── -->
-  <div class="slide slide-end" data-n="14">
+  <!-- ═══ 13 END ════════════════════════════════════════════════════════════ -->
+  <div class="slide slide-end" data-n="13">
     <div class="end-inner">
       <div class="end-pre">2ヶ月かけてたどり着いた答え</div>
       <div class="end-l1">強制から宣言へ。</div>
       <div class="end-l2">外側から内側の不変条件へ。</div>
       <div class="end-cmd">$ npx spec-runner</div>
       <div class="end-next">
-        <strong>今後：</strong>AIチームでのチーム開発に本格導入予定<br>
+        <strong>今後：</strong>AI チームでのチーム開発に本格導入予定<br>
         施策チームで既存開発への実証スタート<br>
         github.com/TEEE88/spec-runner
       </div>
@@ -1007,7 +863,6 @@
   let current = 0;
   const progress = document.getElementById('progress');
   const counter = document.getElementById('counter');
-  const hint = 'github.com/TEEE88/spec-runner';
 
   slides.forEach((_, i) => {
     const d = document.createElement('div');
@@ -1016,7 +871,6 @@
     progress.appendChild(d);
   });
 
-  // Update footer slide numbers
   function updateFooters() {
     slides.forEach((s, i) => {
       const f = s.querySelector('.footer-slide');

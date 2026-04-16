@@ -4,7 +4,6 @@ spec_runner:
   kind: detailed_design
   depends_on:
     - overview.use_case_list
-    - detail.domain.{ドメイン名}
   maps_to:
     - src/application/{uc_name}/
     - tests/application/{uc_name}/
@@ -14,7 +13,6 @@ spec_runner:
 
 ## 概要
 
-- 使用するドメイン: {ドメイン名}
 - トリガー: {何がこのUCを呼び出すか}
 - 事前条件: {UCが成立するために必要な状態}
 - 事後条件: {UC完了後の状態}
@@ -47,21 +45,6 @@ sequenceDiagram
 | エラーケース | 発生条件 | 対応 |
 |------------|---------|------|
 | {エラーケース} | {発生条件} | {対応} |
-
-## 画面レイアウト
-
-> `has_frontend: true` のときのみ記載する。不要なら削除する。
-
-- 画面名: {画面名}
-- 遷移元: {前の画面 or -}
-- 遷移先: {次の画面 or -}
-
-```
-{画面レイアウト概要 — ASCII art / Markdown テーブルで表現}
-```
-
-- 主要 UI 要素:
-  - {入力フォーム・ボタン・一覧表示など}
 
 ## テスト観点
 

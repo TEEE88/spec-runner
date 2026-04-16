@@ -18,7 +18,7 @@ Phase 6: セットアップ専用 skill のアーカイブ提案
 
 ## Phase 1: 入力の確認
 
-1. `docs/01_要件定義/**` を読む
+1. `docs/バックエンド/01_要件定義/**` を読む。`has_frontend: true` の場合は `docs/フロントエンド/01_要件定義/**` も読む
 2. `.spec-runner/architecture/architecture.yaml` を読む
 3. 固定化すべき判断と project 固有判断を切り分ける
 
@@ -49,7 +49,20 @@ Phase 6: セットアップ専用 skill のアーカイブ提案
 
 seed が存在しない場合は「新規に作る」で進める。
 
-`has_frontend: true` の場合は、UC ファイルに画面レイアウトセクションを含める旨を専用スキルに明記する。
+`has_frontend: true` の場合は、`frontend-seed` と バックエンド seed の両方を並走させる旨を専用スキルに明記する。
+
+### テンプレートの移行
+
+seed からスキルを作成した場合（リネーム・リネーム＋構成変更）、seed の `templates/` を新しいスキルの `templates/` にそのままコピーする。
+
+```
+# 例: ddd-seed → my-feature の場合
+cp -r .github/skills/ddd-seed/templates/ .github/skills/my-feature/templates/
+```
+
+コピー後、このプロジェクトで不要なテンプレートファイルを削除し、必要なテンプレートファイルを追加してユーザーに承認を得る。プレースホルダー（`{カテゴリ名}` 等）はそのまま残す。
+
+`integrations` に従い `.claude/` / `.github/` 両系で同様に実施する。seed 本体は Phase 6 でアーカイブするまで削除しない。
 
 4. ユーザーに確認・承認を得る
 
@@ -58,12 +71,25 @@ seed が存在しない場合は「新規に作る」で進める。
 インストール時に配布された基盤 skill のプレースホルダーを、このプロジェクトの実態に書き換える。
 以降の書き換えはすべて `architecture.yaml` の `integrations` に従う（`claude` のみなら `.claude/` だけ、`github` のみなら `.github/` だけ、両方なら対で更新する）。
 
+### インフラ構成ファイルの整備
+
+`architecture.yaml` の `language` / `folder_structure` / `testing_policy` を参照して以下を作成する。
+
+1. **`.gitignore`**: 言語・フレームワーク固有のパターン（依存パッケージ・ビルド成果物・キャッシュ）と、プロジェクト固有の除外パス（`.env`、`docs/` 等）をユーザーと確認して作成する
+2. **`.dockerignore`**: `.git`・`docs/`・`tests/`・依存パッケージ・ビルド成果物をビルドコンテキストから除外する。ユーザーに追加除外パスを確認する
+3. **`Dockerfile.test`**: テスト実行専用イメージを作成する
+   - ベースイメージをユーザーに確認する（例: `python:3.12-slim`, `node:20-alpine`）
+   - テスト依存（テストフレームワーク・カバレッジツール等）をインストールする
+   - `has_frontend: true` の場合はフロントエンド用も作成する
+
 ### test-config.md の書き換え
 
 `rules/test-config.md`（GitHub Copilot は `instructions/test-config.instructions.md`）はテスト実行コマンドの単一ソースとして `test-driven-development` スキルと `run-tests` エージェントの両方から参照される。`architecture.yaml` の `testing_policy` を参照して書き換える。
 
-1. **テスト実行コマンド**: `<your-unit-test-command>` / `<your-integration-test-command>` 等を実際のコマンドに書き換える
-2. **テスト構成**: `tests/` のディレクトリ構成が実態と異なる場合は書き換える
+1. **Docker Compose サービス名の確認**: バックエンド・フロントエンドそれぞれのサービス名をユーザーに確認する（例: `backend`, `frontend`）
+2. **LocalStack の確認**: AWS サービスを使うか確認する。使う場合は対象サービス（S3, SQS, DynamoDB 等）と LocalStack のサービス名をユーザーに確認する
+3. **テスト実行コマンド**: `docker compose run --rm <service> <test-command>` の形式で各コマンドを書き換える
+4. **テスト構成**: `tests/` のディレクトリ構成が実態と異なる場合は書き換える
 
 ### test-driven-development の書き換え
 
@@ -71,13 +97,6 @@ seed が存在しない場合は「新規に作る」で進める。
 
 1. **fixture / テストデータ**: このプロジェクトの実際のクラス名・DB 接続方法・ヘルパ関数パターンを記述する
 2. **モックのルール**: 使用する外部サービスとモック手段（ライブラリ名など）を具体化する
-
-### 影響範囲チェックリストの書き換え
-
-`.claude/skills/design-change/references/影響範囲チェックリスト.md` をプロジェクト固有の変更カテゴリとパスに合わせて書き換える。
-
-1. 変更カテゴリをプロジェクトの構成要素（モジュール・サービス・ドメインなど）に合わせて追加・削除する
-2. 詳細設計のパスを `architecture.yaml` の `folder_structure` に合わせて書き換える
 
 ### code-style.md の書き換え
 
@@ -124,6 +143,7 @@ seed が存在しない場合は「新規に作る」で進める。
 | `architecture-definition` | 新規プロジェクト初期化専用。アーキテクチャ確定後は不要 |
 | `existing-project-to-docs` | 既存プロジェクト取り込み専用。docs 生成後は不要 |
 | `ddd-seed` / `simple-seed` | プロジェクト専用スキル作成後は不要 |
+| `frontend-seed` | `has_frontend: true` かつプロジェクト専用スキル作成後は不要 |
 | `architecture-skill-development`（このファイル自身） | project 専用 skill が安定したら不要。アーキテクチャ大変更時は再利用可 |
 
 ### 手順
@@ -137,10 +157,13 @@ seed が存在しない場合は「新規に作る」で進める。
    - `scripts/scan.js` — **削除しない**。`@analyze-impact` が常時依存しているため
 5. `CLAUDE.md` を更新する
    - 「初回自動起動」セクション（spec-runner インストール時に生成されたもの）を削除する
-   - 作成した project 専用 skill の名前と使いどころを記載する
-   - 例:
+   - **必ず「開発ワークフロー」セクションを設け、各作業でどの skill を使うかを全て明記する。** skill の記載がない CLAUDE.md は未完成とみなす
+   - 以下のフォーマットをベースに、このプロジェクトで使う skill を全て列挙する:
      ```markdown
      ## 開発ワークフロー
+
+     作業を開始するときは必ず対応するスキルを使うこと。スキルなしで直接実装・設計を進めてはならない。
+
      新機能を実装するときは `/feature-development` を使う。
      既存機能を変更するときは `/design-change` を使う。
      テストを書くときは `/test-driven-development` を使う。

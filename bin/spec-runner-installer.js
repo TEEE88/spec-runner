@@ -351,12 +351,6 @@ function main() {
     throw new Error(`Claude テンプレートが見つかりません: ${CLAUDE_TEMPLATE_DIR}`);
   }
 
-  // CLAUDE.md をプロジェクトルートへインストール（target によらず常に配置）
-  const claudeMdSrc = path.join(TEMPLATE_ROOT, "CLAUDE.md");
-  if (exists(claudeMdSrc)) {
-    copyFileWithPolicy(claudeMdSrc, path.join(CWD, "CLAUDE.md"), archiveRoot);
-  }
-
   // .spec-runner/scripts を導入（target によらず常に配置）
   const specRunnerTemplateDir = path.join(TEMPLATE_ROOT, ".spec-runner");
   if (exists(specRunnerTemplateDir)) {
@@ -368,10 +362,18 @@ function main() {
 
   console.log("");
   if (target === "claude" || target === "both") {
+    const claudeMdSrc = path.join(TEMPLATE_ROOT, "CLAUDE.md");
+    if (exists(claudeMdSrc)) {
+      copyFileWithPolicy(claudeMdSrc, path.join(CWD, "CLAUDE.md"), archiveRoot);
+    }
     mirrorTreeTo(DEST_CLAUDE_DIR, CLAUDE_TEMPLATE_DIR, archiveRoot);
   }
   if (target === "copilot" || target === "both") {
     ensureDir(DEST_GITHUB_DIR);
+    const copilotInstructionsSrc = path.join(TEMPLATE_ROOT, "copilot-instructions.md");
+    if (exists(copilotInstructionsSrc)) {
+      copyFileWithPolicy(copilotInstructionsSrc, path.join(CWD, ".github", "copilot-instructions.md"), archiveRoot);
+    }
     if (dirHasFiles(COPILOT_TEMPLATE_DIR)) {
       mirrorTreeTo(DEST_GITHUB_DIR, COPILOT_TEMPLATE_DIR, archiveRoot);
       const copilotSkillsRoot = path.join(COPILOT_TEMPLATE_DIR, "skills");
