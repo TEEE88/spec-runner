@@ -119,6 +119,7 @@ function copySettingsJsonWithMerge(src, dest, archiveRoot) {
     fs.copyFileSync(dest, ap);
   }
   writeFileText(dest, JSON.stringify(merged, null, 2) + "\n");
+  console.log(`  マージ: ${path.relative(CWD, dest)}`);
 }
 
 function appendToGitignore(lines, dest) {

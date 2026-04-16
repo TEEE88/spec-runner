@@ -51,8 +51,9 @@ curl -sSL https://raw.githubusercontent.com/TEEE88/spec-runner/main/install.sh |
 - `architecture-definition`: 新規プロジェクトで docs と architecture contract を起こす
 - `existing-project-to-docs`: 既存コードから docs の draft と構造化情報を起こす
 - `architecture-skill-development`: architecture contract から project 専用 skill を育てる
-- `docs-driven-seed`: DDD 向けの project 専用 skill の種（`style: ddd` のとき）
+- `ddd-seed`: DDD 向けの project 専用 skill の種（`style: ddd` のとき）
 - `simple-seed`: レイヤードアーキテクチャ向けの project 専用 skill の種（`style: layered` のとき）
+- `frontend-seed`: フロントエンド向けの project 専用 skill の種
 
 **開発ループ用**（日常的に使う）
 
