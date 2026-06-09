@@ -1,0 +1,42 @@
+{
+  "name": "spec-runner",
+  "version": "3.0.0",
+  "description": "docs を正本にした開発運用ハーネスを Claude / Copilot に導入する",
+  "license": "MIT",
+  "bin": {
+    "spec-runner": "bin/spec-runner-installer.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [
+    "ddd",
+    "phase-gate",
+    "ai-development",
+    "design-first",
+    "claude-code",
+    "spec-runner",
+    "laravel",
+    "rails",
+    "django",
+    "nextjs",
+    "docs-as-code",
+    "architecture-driven"
+  ],
+  "scripts": {},
+  "files": [
+    "spec-runner/",
+    "bin/",
+    "install.sh",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fandmnet-inhouse/spec-runner.git"
+  },
+  "homepage": "https://github.com/fandmnet-inhouse/spec-runner",
+  "bugs": {
+    "url": "https://github.com/fandmnet-inhouse/spec-runner/issues"
+  }
+}
