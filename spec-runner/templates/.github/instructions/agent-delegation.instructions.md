@@ -10,8 +10,7 @@ applyTo: "**"
 
 | 場面 | 委任先 | タイミング |
 |------|--------|-----------|
-| 設計書⇔実装の整合性確認 | `@review-design` | 設計書を変更したとき、フェーズレビュー時 |
-| コーディング規約チェック | `@review-code` | 実装・修正が完了したとき |
+| コーディング規約チェック・設計書⇔実装の整合性確認 | `@review` | 実装・修正が完了したとき |
 | テスト実行＋失敗分析 | `@run-tests` | 実装・修正が完了したとき |
 | 変更の影響範囲調査 | `@analyze-impact` | design-change で影響範囲を洗うとき |
 
@@ -19,7 +18,7 @@ applyTo: "**"
 
 独立して動けるエージェントは同時に起動する。
 
-例: 実装完了後 → `@run-tests` と `@review-code` を**同時に**起動し、両方の結果を待ってからユーザーへ報告する。
+例: 実装完了後 → `@run-tests` と `@review` を**同時に**起動し、両方の結果を待ってからユーザーへ報告する。
 
 ## メインエージェントが自分でやること
 
@@ -36,8 +35,9 @@ applyTo: "**"
 
 1. **目的とゴール**: 何を判定・調査したいか
 2. **必読ファイル絶対パスの列挙**: 
-   - 規約照合なら `.claude/rules/code-common.md` + `code-backend.md` または `code-frontend.md`
-   - 設計書整合性なら `.claude/rules/design-docs.md` と対象設計書のフルパス
+   - `@review` でコード規約を見るなら `.github/instructions/code-common.instructions.md` + `code-backend.instructions.md` または `code-frontend.instructions.md`
+   - `@review` で設計書整合性を見るなら `.github/instructions/design-docs.instructions.md` と対象設計書のフルパス
+   - 両方チェックするなら上記すべてを列挙する
    - テスト実行なら `.claude/rules/test-backend.md` または `test-frontend.md`
 3. **調査範囲の限定**: 対象ファイル・対象パス（範囲を絞らないと膨らむ）
 4. **報告フォーマットと文字数上限**: 「200 語以内」「箇条書きのみ」「違反箇所と推奨対応をペア」など

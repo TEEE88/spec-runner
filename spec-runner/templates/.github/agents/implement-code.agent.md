@@ -14,7 +14,7 @@ tools: ["read", "search", "edit", "execute"]
    - 文言のみ・内部リファクタ（外部仕様不変）: 関連する詳細設計だけ確認する
 3. 設計と実装の差分がある場合の方針を決める
    - 設計どおりに実装する
-   - 先に設計書を更新する（必要なら `review-design` / `analyze-impact` の手順を使って影響確認する）
+   - 先に設計書を更新する（必要なら `analyze-impact` で影響確認する）
 4. `git diff --name-only` で変更対象を確認する
 5. 変更領域に応じて規約を読む（共通ルール `.github/instructions/code-common.instructions.md` は両領域で必読）
    - バックエンド: `.github/instructions/code-backend.instructions.md` / `.github/instructions/test-backend.instructions.md`
