@@ -1,50 +1,34 @@
 ---
 name: analyze-impact
-description: design-change で影響範囲を調査するときに呼ぶ。node_id から連鎖する影響ファイルを一覧化し、maps_to の整合性を報告する。
-tools: ["execute"]
+description: design-change で影響範囲を調査するときに呼ぶ。impact.js で影響を機械列挙し、diff のあるペアだけ乖離チェックする。
+tools: ["read", "search", "execute"]
 ---
 
 # 影響範囲分析
 
-## 入力
+入力: 変更対象の `node_id` またはファイルパス。（任意）diff 基準 ref — なければグラフ列挙のみ。
 
-- 変更対象の `node_id`（例: `詳細.ユースケース.注文登録`）またはファイルパス
+## 原則
+
+ファイルを丸ごと読まない。機械処理（impact.js / extract.js / git diff）の出力で判断し、読むのは下記の範囲のみ。drift 検証済み項目（定数・公開IF・例外型・input 名・T-XX）を再チェックしない。
 
 ## 手順
 
-### 1. graph.json の確認
-
-`graph.json` は Edit / Write のたびに hooks で自動更新される。`.github/.spec-runner/scan/graph.json` が存在しない場合のみ以下を実行する。
+### 1. 機械列挙
 
 ```bash
-node .github/.spec-runner/scripts/scan.js
+node .spec-runner/scripts/impact.js "{node_id}" --diff=main
 ```
 
-### 2. 影響範囲をグラフから取得
+`diff.error`（main ブランチなし等）-> 既定ブランチ名で再実行、なければ `--diff`（HEAD 比較）。
 
-```bash
-node -e "
-const g = require('./.github/.spec-runner/scan/graph.json');
-const id = '{node_id}';
-const node = g.nodes[id] || {};
-const direct = g.reverse_index[id] || [];
-const indirect = [...new Set(
-  direct.flatMap(n => g.reverse_index[n] || []).filter(n => !direct.includes(n) && n !== id)
-)];
-console.log(JSON.stringify({ node, direct: direct.map(n => ({id: n, ...g.nodes[n]})), indirect: indirect.map(n => ({id: n, ...g.nodes[n]})), missing: g.missing_maps_to }, null, 2));
-"
-```
+出力: `direct`/`indirect`（グラフ2階層）, `impl_files`, `diff.pairs_to_check`（乖離チェックはここだけ）, `diff.unchanged_candidates`（列挙のみ・読まない）, `diff.changed_functions`, `missing_maps_to`/`lint`/`drift`。
 
-### 3. 結果を一覧化する
+### 2. 乖離チェック（pairs_to_check のみ）
 
-### 4. 特定した設計書⇔実装ペアの乖離チェック
-
-直接影響・間接影響のうち `maps_to` を持つノードについて、設計書と実装ファイルを対で読み、乖離を確認する。
-
-1. `.github/instructions/design-docs.instructions.md` を読み、ヘッダー仕様と照合観点を把握する
-2. 各ペアの設計書と `maps_to` 先の `src/` / `tests/` ファイルを読む
-3. 責務・入出力・判断条件・テスト一覧が一致しているか確認する
-4. 乖離があれば種別（不足 / 過剰 / 変更）と推奨対応をセットで報告する
+1. 仕様側: `node .spec-runner/scripts/extract.js "{node_id}" --blocks 公開IF,入出力,フロー,テスト仕様`
+2. 実装側: `git diff --function-context {base} -- {file}` で変更関数のみ。新規ファイルのみ Read 可
+3. 意味論のみ突合: フロー⇔処理順・終了条件、tx⇔トランザクション境界、公開IF⇔auth・ステータス対応
 
 ## 報告フォーマット
 
@@ -52,36 +36,24 @@ console.log(JSON.stringify({ node, direct: direct.map(n => ({id: n, ...g.nodes[n
 ## 影響範囲分析
 
 ### 起点
-- node_id: {node_id}
-- ファイル: {ファイルパス}
-- kind: {kind}
+- {node_id}（{ファイル} / {kind}）
 
-### 直接影響（1階層目）
-- [ファイルパス] — node_id: {node_id}, kind: {kind}
+### 直接影響 / 間接影響
+- [ファイル] — {node_id}, {kind}
 
-### 間接影響（2階層目）
-- [ファイルパス] — node_id: {node_id}, kind: {kind}
+### 乖離チェック対象（diff あり）
+- [設計書] ⇔ [実装]（変更関数: {context}）
 
-### 実装影響（maps_to で対応）
-- [src/ または tests/ のファイルパス]
+### 乖離あり
+- [設計書] ⇔ [実装]: 種別 [不足/過剰/変更] / [差分] / 推奨対応 [設計書を更新 / 実装を修正]
 
-### maps_to 整合性チェック
-- OK: 全参照ファイルが存在する
-- MISSING: {missing} — {source} ({node_id}) に記載されているが存在しない
+### 影響候補（変更なし・未読）
+- [ファイル一覧]
 
-### 設計書⇔実装 乖離チェック
-
-#### 一致（問題なし）
-- [設計書ファイル] ⇔ [実装ファイル]
-
-#### 乖離あり
-##### [設計書ファイル] ⇔ [実装ファイル]
-- 種別: 不足 / 過剰 / 変更
-- 内容: [具体的な差分の説明]
-- 推奨対応: 設計書を更新 / 実装を修正
-
-### 影響なし（確認済みで変更不要）
-- [ファイルパス] — 理由: {理由}
+### 機械検証警告
+- missing_maps_to / lint / drift を転記。なければ「なし」
 ```
 
-影響ファイルが多い場合は kind 別にグループ化する。
+## 出力規律
+
+挨拶・前置き・作業実況禁止。報告フォーマットのみ。問題ない項目は1行。多い場合は kind 別にグループ化。

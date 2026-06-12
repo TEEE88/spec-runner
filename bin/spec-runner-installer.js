@@ -454,8 +454,8 @@ function main() {
     mirrorTreeTo(specRunnerDestDir, specRunnerTemplateDir, specRunnerArchiveRoot);
   }
 
-  // .gitignore に scan キャッシュを追記（配置先に合わせたパス）
-  appendToGitignore([`${specRunnerPathPrefix}scan/`], path.join(CWD, ".gitignore"));
+  // .gitignore に scan キャッシュと作業状態ファイルを追記（配置先に合わせたパス）
+  appendToGitignore([`${specRunnerPathPrefix}scan/`, `${specRunnerPathPrefix}state/`], path.join(CWD, ".gitignore"));
 
   console.log("");
   if (target === "claude" || target === "both") {

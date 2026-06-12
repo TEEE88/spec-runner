@@ -4,45 +4,33 @@ applyTo: "**"
 
 # サブエージェント委任ルール
 
-メインエージェントは判断・対話・ファイル編集に集中する。検証・調査・実行・ファイル検索はすべてサブエージェントへ委任する（メインのコンテキスト節約）。
+メインは判断・対話・ファイル編集に集中。検証・調査・実行・検索はサブエージェントへ（メインのコンテキスト節約）。
 
-## 委任する場面と委任先
+## 委任先
 
 | 場面 | 委任先 | タイミング |
 |------|--------|-----------|
-| コーディング規約チェック・設計書⇔実装の整合性確認 | `@review` | 実装・修正が完了したとき |
-| テスト実行＋失敗分析 | `@run-tests` | 実装・修正が完了したとき |
-| 変更の影響範囲調査 | `@analyze-impact` | design-change で影響範囲を洗うとき |
+| 規約チェック・設計書⇔実装の整合確認 | `@review` | 実装・修正完了時 |
+| テスト実行＋失敗分析 | `@run-tests` | 実装・修正完了時 |
+| 影響範囲調査 | `@analyze-impact` | design-change の影響洗い出し時 |
 
-## 並行起動
+独立して動けるエージェントは同時起動（例: 実装完了 -> `@run-tests` と `@review` を同時に）。
 
-独立して動けるエージェントは同時に起動する。
+## メインが自分でやること
 
-例: 実装完了後 → `@run-tests` と `@review` を**同時に**起動し、両方の結果を待ってからユーザーへ報告する。
+ユーザー対話・意思決定・承認受領 / フェーズ進行管理 / ファイル作成・編集 / サブエージェント結果の要点をユーザーへ伝達（生出力を貼らない）。
 
-## メインエージェントが自分でやること
+## 委任 prompt の必須事項
 
-サブエージェントは会話の文脈を持たない。以下はメインエージェントが担う:
+サブエージェントは CLAUDE.md / rules / skills を読まない。prompt に必ず含める:
 
-- ユーザーとの対話・意思決定・承認の受け取り
-- フェーズの進行管理・次のアクションの判断
-- ファイルの作成・編集
-- サブエージェントの結果をポイントを絞ってユーザーへ伝える（生の出力をそのまま貼らない）
+1. 目的とゴール（冒頭1文）
+2. 仕様は抽出ブロックで埋め込む: `node .spec-runner/scripts/extract.js "{node_id}" --blocks ...` の出力を `## 仕様` として埋め込む（ブロックは design-docs.instructions.md の抽出表）。フェンスなし設計書のみパスを渡す
+3. 必読ルールファイル: `@review` コード規約 -> `.github/instructions/code-common.instructions.md` + `code-backend.instructions.md` or `code-frontend.instructions.md` / 設計整合 -> `design-docs.instructions.md` / テスト実行 -> `test-backend.instructions.md` or `test-frontend.instructions.md`
+4. 範囲限定: 影響調査・整合レビューは `impact.js --diff` の `pairs_to_check` に限定
+5. 報告フォーマットと文字数上限（例: 200語以内・箇条書きのみ）
+6. 修正可否（レポートのみ / 修正可・ただし設計書を超えない）
 
-## サブエージェントへの prompt の必須事項
+design-change 進行中は状態ファイル（`.spec-runner/state/*.yaml`）のパスも渡し、`decisions:` の再質問を禁止する。
 
-サブエージェントは CLAUDE.md / rules / skills を自動では読まない。委任時の prompt に**必ず以下を含める**:
-
-1. **目的とゴール**: 何を判定・調査したいか
-2. **必読ファイル絶対パスの列挙**: 
-   - `@review` でコード規約を見るなら `.github/instructions/code-common.instructions.md` + `code-backend.instructions.md` または `code-frontend.instructions.md`
-   - `@review` で設計書整合性を見るなら `.github/instructions/design-docs.instructions.md` と対象設計書のフルパス
-   - 両方チェックするなら上記すべてを列挙する
-   - テスト実行なら `.claude/rules/test-backend.md` または `test-frontend.md`
-3. **調査範囲の限定**: 対象ファイル・対象パス（範囲を絞らないと膨らむ）
-4. **報告フォーマットと文字数上限**: 「200 語以内」「箇条書きのみ」「違反箇所と推奨対応をペア」など
-5. **修正可否の明示**: 「修正はしない、レポートのみ」/「修正してよい、ただし設計書を超えて変更しない」
-
-prompt の冒頭で目的を 1 文、その後に必読ファイル列挙、その後に観点と報告フォーマット、の順で書く。
-
-UC の新規実装を委任するときは「Router への配線も含む（`presentation/api/{feature}/router.py` に `@router.{method}` エンドポイントを追加すること）」を明示する。省略すると UC が存在しても 404 になる。
+UC 新規実装の委任は仕様の `公開IF` ブロック必須。Router 配線は `公開IF` を正本として実装範囲（欠けると UC があっても 404）。

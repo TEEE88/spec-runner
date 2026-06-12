@@ -5,180 +5,113 @@ description: architecture contract と docs を読み、プロジェクト専用
 
 # architecture-skill-development
 
-## 全体フロー
-
 ```
-Phase 1: 入力の確認
-Phase 2: 反復フローの抽出
+Phase 1: 入力確認
+Phase 2: 反復フロー抽出
 Phase 3: skill / rule / template へ分解
 Phase 4: 基盤 skill のプロジェクト固有化
-Phase 5: 一貫性の検証
+Phase 5: 一貫性検証
 Phase 6: セットアップ専用 skill のアーカイブ提案
 ```
 
-## Phase 1: 入力の確認
+以降の書き換えは全て `architecture.yaml` の `integrations` に従う（`claude` -> `.claude/` のみ、`github` -> `.github/` のみ、両方 -> 対で更新）。
 
-1. `docs/01_要件定義/` を読む
-2. `.spec-runner/architecture/architecture.yaml` を読む
-3. 固定化すべき判断と project 固有判断を切り分ける
+## Phase 1: 入力確認
 
-## Phase 2: 反復フローの抽出
+`docs/01_要件定義/` と `.spec-runner/architecture/architecture.yaml` を読み、固定化すべき判断と project 固有判断を切り分ける。
 
-1. よく繰り返す作業を抽出する
-2. どこにユーザー承認が必要かを決める
-3. 影響調査や TDD など共通 skill をどうつなぐか決める
-4. ユーザーに確認・承認を得る
+## Phase 2: 反復フロー抽出
+
+よく繰り返す作業を抽出 -> ユーザー承認が必要な箇所を決定 -> 影響調査・TDD 等の共通 skill との接続を決定 -> 承認。
 
 ## Phase 3: skill / rule / template へ分解
 
-ファイルを作成する前に `.claude/skills/harness-engineering/references/harness-format.md` を読み、フォーマットを確認する。
+作成前に `.github/skills/harness-engineering/references/harness-format.md` を読む。
 
-1. 会話フローは skill にする
-2. 常時守る約束は rule にする
-3. 毎回コピーする設計書は template にする
+- 会話フロー -> skill / 常時守る約束 -> rule / 毎回コピーする設計書 -> template
 
 ### プロジェクト専用スキルの作成
 
-`fullstack-seed` がインストール済みの場合、どのように専用スキルを作るかをユーザーに確認する。
+`fullstack-seed` がある場合、作り方をユーザーに確認:
 
 | 選択肢 | 内容 |
 |--------|------|
-| 新規に作る | `harness-format.md` を基に、このプロジェクトのフローをゼロから記述する |
-| リネームだけ | seed ファイルをプロジェクト専用名に変更する |
-| リネーム＋構成変更 | seed をリネームしたうえでフェーズ構成・テンプレートパスをプロジェクトの実態に合わせて書き換える |
+| 新規に作る | `harness-format.md` を基にゼロから記述 |
+| リネームだけ | seed をプロジェクト専用名に変更 |
+| リネーム＋構成変更 | リネーム後、フェーズ構成・テンプレートパスを実態に合わせる |
 
-seed が存在しない場合は「新規に作る」で進める。
+seed なし -> 新規に作る。
 
-### テンプレートの移行
+seed からの作成時は `templates/` を新スキルへコピー（例: `cp -r .github/skills/fullstack-seed/templates/ .github/skills/my-app/templates/`）。不要テンプレート削除・必要分追加 -> 承認。プレースホルダー（`{カテゴリ名}` 等）は残す。seed 本体は Phase 6 まで削除しない。
 
-seed からスキルを作成した場合（リネーム・リネーム＋構成変更）、seed の `templates/` を新しいスキルの `templates/` にそのままコピーする。
-
-```
-# 例: fullstack-seed → my-app の場合
-cp -r .github/skills/fullstack-seed/templates/ .github/skills/my-app/templates/
-```
-
-コピー後、このプロジェクトで不要なテンプレートファイルを削除し、必要なテンプレートファイルを追加してユーザーに承認を得る。プレースホルダー（`{カテゴリ名}` 等）はそのまま残す。
-
-`integrations` に従い `.claude/` / `.github/` 両系で同様に実施する。seed 本体は Phase 6 でアーカイブするまで削除しない。
-
-4. ユーザーに確認・承認を得る
+承認を得て次へ。
 
 ## Phase 4: 基盤 skill のプロジェクト固有化
 
-インストール時に配布された基盤 skill のプレースホルダーを、このプロジェクトの実態に書き換える。
-以降の書き換えはすべて `architecture.yaml` の `integrations` に従う（`claude` のみなら `.claude/` だけ、`github` のみなら `.github/` だけ、両方なら対で更新する）。
+配布された基盤 skill のプレースホルダーを実態に書き換える。
 
-### インフラ構成ファイルの整備
+### インフラ構成ファイル
 
-`architecture.yaml` の `language` / `folder_structure` / `testing_policy` を参照して以下を作成する。
+`architecture.yaml` の `language`/`folder_structure`/`testing_policy` を参照:
 
-1. `.gitignore`: 言語・フレームワーク固有のパターン（依存パッケージ・ビルド成果物・キャッシュ）と、プロジェクト固有の除外パス（`.env`、`docs/` 等）をユーザーと確認して作成する
-2. `.dockerignore`: `.git`・`docs/`・`tests/`・依存パッケージ・ビルド成果物をビルドコンテキストから除外する。ユーザーに追加除外パスを確認する
-3. `Dockerfile.test`: テスト実行専用イメージを作成する
-   - ベースイメージをユーザーに確認する（例: `python:3.12-slim`, `node:20-alpine`）
-   - テスト依存（テストフレームワーク・カバレッジツール等）をインストールする
-   - `scope: all` または `scope: frontend` の場合はフロントエンド用も作成する
+1. `.gitignore`: 言語固有パターン + プロジェクト固有除外をユーザーと確認して作成
+2. `.dockerignore`: `.git`・`docs/`・`tests/`・依存・ビルド成果物を除外。追加除外を確認
+3. `Dockerfile.test`: テスト専用イメージ。ベースイメージを確認（例: `python:3.12-slim`）。テスト依存をインストール。`scope: all`/`frontend` ならフロント用も
 
-### test-backend.md / test-frontend.md の書き換え
+### test-backend.instructions.md / test-frontend.instructions.md
 
-`rules/test-backend.md` / `rules/test-frontend.md`（GitHub Copilot は `instructions/test-backend.instructions.md` / `instructions/test-frontend.instructions.md`）は、テスト実行コマンドの参照元として `test-driven-development` スキルと `run-tests` エージェントの両方から参照される。`architecture.yaml` の `testing_policy` を参照して書き換える。
+`test-driven-development` と `run-tests` の参照元。`testing_policy` を参照して書き換え:
 
-1. Docker Compose サービス名の確認: バックエンド・フロントエンド・テスト用 DB・依存サービス（例: Redis, LocalStack）のサービス名をユーザーに確認する
-2. 起動方針の定義: 起動順は固定しない（バックエンド→フロントエンドの順を必須にしない）。必要最小のサービスだけ `docker compose up -d` で起動し、不足が出たら都度追加・修正する
-3. 待機方針の定義: healthcheck または接続確認コマンドで短い待機時間を設定し、失敗時のみ追加待機・再実行する
-4. テスト実行・初期化の定義: 必要なら migration/seed を実行し、テストコマンドは `docker compose run --rm <service> <test-command>` の形式で書き換える
-5. 後片付けと構成: `docker compose down` / `docker compose down -v` の使い分けと失敗時ログ採取（`docker compose logs`）を明記し、`tests/` のディレクトリ構成が実態と異なる場合は書き換える
+1. Docker Compose サービス名（バックエンド・フロント・テスト DB・依存サービス）を確認
+2. 起動方針: 必要最小のサービスのみ `docker compose up -d`。順序固定しない
+3. 待機方針: healthcheck か接続確認で短い待機。失敗時のみ追加待機
+4. テストコマンドを `docker compose run --rm <service> <test-command>` 形式に
+5. `down`/`down -v` の使い分け・失敗時 `docker compose logs` を明記。`tests/` 構成が実態と違えば書き換え
 
-### test-driven-development の書き換え
+### test-driven-development
 
-`architecture.yaml` の `language` を参照して、以下を実際の値に置き換える。
+`language` を参照し、fixture（実クラス名・DB 接続・ヘルパパターン）とモック手段（ライブラリ名）を具体化。
 
-1. fixture / テストデータ: このプロジェクトの実際のクラス名・DB 接続方法・ヘルパ関数パターンを記述する
-2. モックのルール: 使用する外部サービスとモック手段（ライブラリ名など）を具体化する
+### code-common.instructions.md / code-backend.instructions.md / code-frontend.instructions.md
 
-### code-common.instructions.md / code-backend.instructions.md / code-frontend.instructions.md の書き換え
+`scope` で構成を決定:
+- `backend` のみ -> code-common 不要、code-backend に全ルール
+- `frontend` のみ -> code-common 不要、code-frontend に全ルール
+- `all` -> code-common に共通集約、各ファイルは言語固有のみ
 
-`architecture.yaml` の `scope` を確認する:
-- `scope: backend` のみ → `code-common.instructions.md` は不要。`code-backend.instructions.md` に全ルールを記述
-- `scope: frontend` のみ → `code-common.instructions.md` は不要。`code-frontend.instructions.md` に全ルールを記述
-- `scope: all`（フロント・バック両方） → **`code-common.instructions.md` に共通ルールを集約し、`code-backend.instructions.md` / `code-frontend.instructions.md` は言語固有ルールのみ記述**
+書き換え: 命名規則 / 固有の決定事項（言語・フレームワーク・構造） / `<your-*-language-and-type-rules>` を具体ルールに。env var 整合・バックグラウンドタスク耐性など汎用ルールは残す。
 
-#### フロント・バック両方ある場合（`scope: all`）
+### リファレンス URL
 
-`code-common.instructions.md` は既にテンプレートに含まれている。以下を確認:
-1. `code-common.instructions.md` の内容が適切か確認（コメント・テスト ID・後方互換禁止・エラーハンドリング）
-2. `code-backend.instructions.md` と `code-frontend.instructions.md` の冒頭に `code-common.instructions.md` への参照があることを確認
-3. プロジェクト固有のコメント規約をユーザーと合意（必要に応じて `code-common.instructions.md` を更新）
+`.spec-runner/references/resources.md` に登録。ユーザーに確認: 公式ドキュメント / サンプルリポジトリ / API 仕様（OpenAPI） / 社内 Wiki / ベストプラクティス記事。
 
-#### 各ファイルの書き換え
+### その他
 
-`architecture.yaml` の `language` と `folder_structure` を参照して書き換える。
+他 skill の同様プレースホルダーも書き換え -> 承認。
 
-1. 命名規則: 言語の慣習に合わせてテーブルの規則・例を書き換える
-2. プロジェクト固有の決定事項: バックエンド言語・フレームワーク・ディレクトリ構造をプレースホルダーから実際の値に書き換える
-3. 言語・型固有ルール: `<your-backend-language-and-type-rules>` / `<your-frontend-language-and-type-rules>` を言語・フレームワークに合わせた具体的なルールに書き換える
-4. 環境変数整合性・バックグラウンドタスク中断耐性などの汎用ルールはそのまま残す
+## Phase 5: 一貫性検証
 
-### リファレンス URL の登録
-
-`.spec-runner/references/resources.md` に、このプロジェクトで使う公式ドキュメントの URL を登録する。
-
-1. ユーザーに以下を確認する:
-   - 言語・フレームワーク・ツールの公式ドキュメント URL
-   - 参考にしているサンプルリポジトリ・リファレンス実装
-   - API 仕様（OpenAPI など）
-   - 社内 Wiki・Notion などの内部ドキュメント
-   - その他ベストプラクティス記事・移行ガイドなど
-2. 教えてもらった情報を名前・カテゴリとともに `.spec-runner/references/resources.md` の該当テーブルに書き込む
-3. ユーザーが追加を終えたら次へ進む
-
-### その他の基盤 skill
-
-同様のプレースホルダーや汎用記述が他の skill にあれば、同じ要領で書き換える。
-
-5. ユーザーに確認・承認を得る
-
-## Phase 5: 一貫性の検証
-
-1. 既存 skill / rule / agent と矛盾しないか確認する
-2. `harness-engineering` が必要な改善点を洗い出す
+既存 skill / rule / agent との矛盾確認。`harness-engineering` が必要な改善点を洗い出す。
 
 ## Phase 6: セットアップ専用 skill のアーカイブ提案
 
-セットアップ時にしか使わない skill は、開発ループに入ると不要になる。ユーザーの承認を得てから整理する。絶対に自動で削除・移動しない。
+開発ループ入り後は不要になる skill を、**ユーザー承認を得てから**整理（自動削除・移動禁止）。
 
-### アーカイブ候補
+候補: `architecture-definition`（初期化専用）/ `existing-project-to-docs`（取り込み専用）/ `fullstack-seed`（専用スキル作成後）/ このファイル自身（専用 skill 安定後。大変更時は再利用可）
 
-| skill | 理由 |
-|---|---|
-| `architecture-definition` | 新規プロジェクト初期化専用。アーキテクチャ確定後は不要 |
-| `existing-project-to-docs` | 既存プロジェクト取り込み専用。docs 生成後は不要 |
-| `fullstack-seed` | プロジェクト専用スキル作成後は不要 |
-| `architecture-skill-development`（このファイル自身） | project 専用 skill が安定したら不要。アーキテクチャ大変更時は再利用可 |
+1. 候補提示 -> 承認 -> 削除（`integrations` に従い該当系のみ）
+2. `.spec-runner/` 整理: `intake/current-system-inventory.md` は docs 昇格済みなら削除可。`architecture/architecture.yaml` と `scripts/` は**削除しない**（前者は正本、後者は scan/extract/impact が常時依存）
+3. グローバル設定（CLAUDE.md / copilot-instructions.md）更新:
+   - 「初回自動起動」セクションを削除
+   - 「開発ワークフロー」セクションを必ず設け、使う skill を全列挙（skill 記載なし = 未完成）
+   - rule は自動適用されるため「○○は△△.md を参照せよ」を書かない（`harness-format.md` 参照）
 
-### 手順
+```markdown
+## 開発ワークフロー
 
-1. 上記の候補をユーザーに提示し、整理してよいか確認する
-2. 承認を得た skill を削除する（`integrations` に従い `.claude/skills/` / `.github/skills/` の該当するほうを削除する）
-3. 必要であれば削除前にバックアップ先をユーザーに伝える
-4. `.spec-runner/` の不要ファイルも整理する
-   - `intake/current-system-inventory.md` — docs に昇格済みなら削除してよい
-   - `architecture/architecture.yaml` — 削除しない。設計変更のたびに最新状態を保つ。プロジェクトの全体像を把握するための正本として使い続ける
-   - `scripts/scan.js` — 削除しない。`@analyze-impact` が常時依存しているため
-5. グローバル設定ファイルを更新する
-   - `claude` 系: `CLAUDE.md` を更新する
-   - `github` 系: `.github/copilot-instructions.md` を更新する
-   - 「初回自動起動」セクション（spec-runner インストール時に生成されたもの）を削除する
-   - 必ず「開発ワークフロー」セクションを設け、各作業でどの skill を使うかを全て明記する。 skill の記載がないファイルは未完成とみなす
-   - rule / instructions ファイルは自動適用されるため、「○○規約は △△.md を参照せよ」のような記述は書かない（`harness-format.md` の「書いてはいけないもの」を参照）
-   - 以下のフォーマットをベースに、このプロジェクトで使う skill を全て列挙する:
-     ```markdown
-     ## 開発ワークフロー
+作業開始時は必ず対応スキルを使う。スキルなしで実装・設計を進めない。
 
-     作業を開始するときは必ず対応するスキルを使うこと。スキルなしで直接実装・設計を進めてはならない。
-
-     新機能を実装するときは `/feature-development` を使う。
-     既存機能を変更するときは `/design-change` を使う。
-     テストを書くときは `/test-driven-development` を使う。
-     ```
+新機能実装 -> `/feature-development`
+既存機能変更 -> `/design-change`
+テスト作成 -> `/test-driven-development`
+```
