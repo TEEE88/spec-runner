@@ -5,6 +5,7 @@ spec_runner:
   depends_on:
     - 概要.バックエンド.業務ロジック概要
     - 詳細.ドメイン.{ドメイン名}
+    - 詳細.共通.エラーポリシー
   maps_to:
     - src/application/{uc_name}/
     - tests/application/{uc_name}/
@@ -14,6 +15,7 @@ spec_runner:
 概要:
   title: UC-{UC名}
   purpose: {このUCの目的を1文。手順は書かない}
+  satisfies: [REQ-{XX}]
 
 定数:
   {定数名}: {値}   # {なぜこの値か}
@@ -25,7 +27,7 @@ spec_runner:
   auth: {不要 / 必須(ロール)}
   成功: {200 / 201 / 204}
   エラー:
-    - exceptions.{発生条件} -> {ステータスコード}
+    - exceptions.{発生条件} -> {ステータスコード}  # ステータスコードは 詳細.共通.エラーポリシー に従う
 
 入出力:
   inputs:

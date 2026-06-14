@@ -7,56 +7,23 @@
  * 影響範囲を3段フィルタで機械的に特定し JSON で出力する。
  *   段1: graph.json の reverse_index を2階層走査（設計グラフ上の到達集合）
  *   段2: git diff との交差（実際に変更されたペアだけを乖離チェック対象に絞る）
- *   段3: 変更された関数名の抽出（LLM が読む範囲を関数単位に限定するための手がかり）
+ *   段3: 変更された関数名の抽出（LLM が読む範囲を関数単位に限定する手がかり）
  *
  * 使い方:
  *   node <agent-dir>/.spec-runner/scripts/impact.js <target> [--diff[=<base>]]
  *
- *   <target> は node_id / 設計書パス / 実装パス（maps_to 逆引き）
- *   --diff      作業ツリーと HEAD の差分で交差を取る
- *   --diff=main 指定 ref との差分で交差を取る
+ *   <target>: node_id / 設計書パス / 実装パス（maps_to 逆引き）
+ *   --diff      作業ツリーと HEAD の差分で交差
+ *   --diff=main 指定 ref との差分で交差
  */
 
-const fs = require('fs');
-const path = require('path');
 const { execFileSync } = require('child_process');
+const lib = require('./lib.js');
 
-const ROOT = process.cwd();
-const TOOL_DIR = path.resolve(__dirname, '..');
-const GRAPH_FILE = path.join(TOOL_DIR, 'scan', 'graph.json');
-const SCAN_SCRIPT = path.join(__dirname, 'scan.js');
-
-function fail(msg) {
-  console.error(`impact: ${msg}`);
-  process.exit(1);
-}
-
-function loadGraph() {
-  if (!fs.existsSync(GRAPH_FILE)) {
-    try {
-      execFileSync(process.execPath, [SCAN_SCRIPT], { stdio: ['ignore', 'ignore', 'inherit'] });
-    } catch { /* missing_maps_to の exit 1 でも graph.json は生成される */ }
-  }
-  if (!fs.existsSync(GRAPH_FILE)) fail('graph.json を生成できない');
-  return JSON.parse(fs.readFileSync(GRAPH_FILE, 'utf8'));
-}
-
-function resolveNodeId(graph, target) {
-  if (graph.nodes[target]) return target;
-  const rel = path.relative(ROOT, path.resolve(ROOT, target));
-  for (const [id, n] of Object.entries(graph.nodes)) {
-    if (n.file === rel) return id;
-  }
-  const byMaps = Object.entries(graph.nodes).filter(([, n]) => (n.maps_to || []).includes(rel));
-  if (byMaps.length === 1) return byMaps[0][0];
-  if (byMaps.length > 1) {
-    fail(`「${target}」は複数ノードに対応する。node_id で指定する:\n  ${byMaps.map(([id]) => id).join('\n  ')}`);
-  }
-  fail(`「${target}」に対応するノードが見つからない`);
-}
+const TOOL = 'impact';
 
 function git(args) {
-  return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' });
+  return execFileSync('git', args, { cwd: lib.ROOT, encoding: 'utf8' });
 }
 
 function nodeSummary(graph, id) {
@@ -73,10 +40,10 @@ function main() {
     if (a.startsWith('--diff=')) { diffBase = a.slice('--diff='.length) || 'HEAD'; continue; }
     if (!target) target = a;
   }
-  if (!target) fail('対象を指定する: impact.js <node_id|パス> [--diff[=<base>]]');
+  if (!target) lib.fail(TOOL, '対象を指定する: impact.js <node_id|パス> [--diff[=<base>]]');
 
-  const graph = loadGraph();
-  const originId = resolveNodeId(graph, target);
+  const graph = lib.loadGraph(TOOL);
+  const { id: originId } = lib.resolveNode(TOOL, graph, target);
 
   // 段1: グラフ到達集合（直接 = 1階層、間接 = 2階層）
   const direct = graph.reverse_index[originId] || [];

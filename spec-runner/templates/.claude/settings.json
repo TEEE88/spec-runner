@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .spec-runner/scripts/scan.js 2>&1 | tail -3"
+            "command": "node .spec-runner/scripts/scan.js 2>&1 | tail -3; node .spec-runner/scripts/render.js -q"
           }
         ]
       }

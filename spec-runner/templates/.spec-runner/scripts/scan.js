@@ -4,282 +4,55 @@
 /**
  * spec-runner scan
  *
- * docs/**\/*.md の frontmatter（spec_runner: セクション）を静的解析し、
- * 依存グラフを <agent-dir>/.spec-runner/scan/graph.json にキャッシュする。
+ * docs/**\/*.md の frontmatter（spec_runner:）を静的解析し、依存グラフを
+ * <agent-dir>/.spec-runner/scan/graph.json にキャッシュする。
  *
- * 本文のハイブリッド仕様YAML（```yaml フェンス）に対して3つの検証を行う:
- *   1. ブロック行範囲の記録（extract.js が部分抽出に使う）
- *   2. lint  — 仕様ファイル内部の整合（死に定数・値の直書き・例外カバレッジ・T-XX 採番 等）
- *   3. drift — 仕様⇔実装の文字列突合（maps_to 先のコードを読み、定数値・公開IF・例外型・
- *              input 名・T-XX が実際に現れるかを機械検証する）
+ * 検証（全て警告。maps_to 欠落のみ exit 1。--strict 時は警告も exit 1）:
+ *   lint      — 仕様内整合
+ *               missing-block / block-order / unknown-block
+ *               dead-constant / inline-value / dead-input
+ *               uncovered-exception / unknown-exception-ref
+ *               test-id-format / test-id-duplicate / ambiguous-wording / untagged-fence
+ *               method-status-mismatch（GET/POST/PUT/PATCH/DELETE の成功ステータス）
+ *               undefined-state（状態遷移の from/to が状態一覧に未定義）
+ *               dead-depends_on（存在しない node_id への参照）
+ *               duplicate-maps_to（複数ノードが同一ファイルを maps_to）
+ *               cycle-depends_on（循環依存）
+ *               uncovered-requirement / unknown-requirement-ref（REQ トレーサビリティ）
+ *   drift     — 仕様⇔実装の文字列突合（maps_to 先コードを読む）
+ *               constant-drift / endpoint-drift / exception-drift / input-drift / test-drift（双方向）
+ *               policy-drift（エラーポリシーとの例外型↔ステータスコード突合）
+ *   unmapped  — どの maps_to にも属さない src/tests ファイル（仕様なきコード）
  *
- * lint / drift は警告（exit 0）。maps_to の参照先欠落のみ致命（exit 1）。
- * drift が警告に留まるのは、値が設定ファイル・環境変数経由になる正当な間接参照があるため。
- *
- * 出力:
- *   .claude/.spec-runner/scan/graph.json または .github/.spec-runner/scan/graph.json
+ * 使い方: node scan.js [--strict]
  */
 
 const fs = require('fs');
 const path = require('path');
+const lib = require('./lib.js');
 
-const ROOT = process.cwd();
-const DOCS_DIR = path.join(ROOT, 'docs');
-const TOOL_DIR = path.resolve(__dirname, '..');
-const OUTPUT_DIR = path.join(TOOL_DIR, 'scan');
-const OUTPUT_FILE = path.join(OUTPUT_DIR, 'graph.json');
+const { ROOT } = lib;
+const OUTPUT_DIR = path.join(lib.TOOL_DIR, 'scan');
 
 // 仕様YAMLの正規ブロック順。概要・入出力・テスト仕様以外は任意ブロック
 const BLOCK_ORDER = ['概要', '定数', '公開IF', '入出力', '状態', 'フロー', '非機能', 'テスト仕様', '補足'];
 const REQUIRED_BLOCKS = ['概要', '入出力', 'テスト仕様'];
 
-// ── ファイル収集 ────────────────────────────────────────────────────────────
+// 曖昧語（LLM が勝手に解釈してブレる語）。「など/等」は語境界つき
+const AMBIGUOUS_WORDS = /適切に|必要に応じて|柔軟に|できるだけ|なるべく|よしなに|いい感じ|場合によっては|など[、。)\s]|など$|等[、。)\s]|等$/;
 
-function findMdFiles(dir) {
-  if (!fs.existsSync(dir)) return [];
-  const results = [];
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) results.push(...findMdFiles(full));
-    else if (entry.name.endsWith('.md')) results.push(full);
-  }
-  return results;
-}
-
-/** ファイルまたはディレクトリ配下の全ファイルパスを返す */
-function collectFiles(p) {
-  if (!fs.existsSync(p)) return [];
-  if (fs.statSync(p).isFile()) return [p];
-  const results = [];
-  for (const entry of fs.readdirSync(p, { withFileTypes: true })) {
-    const full = path.join(p, entry.name);
-    if (entry.isDirectory()) results.push(...collectFiles(full));
-    else if (entry.isFile()) results.push(full);
-  }
-  return results;
-}
-
-// ── frontmatter パーサー ────────────────────────────────────────────────────
-
-function parseSpecRunnerFrontmatter(content) {
-  const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!fmMatch) return null;
-
-  const fm = fmMatch[1];
-  if (!fm.includes('spec_runner:')) return null;
-
-  // spec_runner: セクションを抽出（次のトップレベルキーまで）
-  const srMatch = fm.match(/spec_runner:\n([\s\S]*?)(?=\n\S|$)/);
-  if (!srMatch) return null;
-  const srBlock = srMatch[1];
-
-  const nodeIdMatch = srBlock.match(/^\s+node_id:\s*(.+)$/m);
-  if (!nodeIdMatch) return null;
-
-  const kindMatch = srBlock.match(/^\s+kind:\s*(.+)$/m);
-
-  return {
-    node_id: nodeIdMatch[1].trim(),
-    kind: kindMatch ? kindMatch[1].trim() : null,
-    depends_on: parseYamlList(srBlock, 'depends_on'),
-    maps_to: parseYamlList(srBlock, 'maps_to'),
-  };
-}
-
-function parseYamlList(block, key) {
-  // 注意: \s は改行を跨ぐため使わない（マルチライン配列の1件目が値側に食われる）
-  const re = new RegExp(`^[ \\t]+${key}:[ \\t]*(.*)$`, 'm');
-  const keyMatch = block.match(re);
-  if (!keyMatch) return [];
-
-  const inlineVal = keyMatch[1].trim();
-
-  // インライン配列: [a, b, c]
-  if (inlineVal.startsWith('[')) {
-    return inlineVal.replace(/[\[\]]/g, '').split(',').map(s => s.trim()).filter(Boolean);
-  }
-
-  // マルチライン配列: - item
-  const afterKey = block.slice(keyMatch.index + keyMatch[0].length);
-  const items = [];
-  for (const line of afterKey.split('\n')) {
-    const itemMatch = line.match(/^\s+-\s+(.+)$/);
-    if (itemMatch) {
-      items.push(itemMatch[1].trim());
-    } else if (line.trim() !== '') {
-      break; // 別のキーが始まったら終了
-    }
-  }
-  return items;
-}
-
-// ── 仕様YAMLブロック解析 ────────────────────────────────────────────────────
-
-/**
- * frontmatter 直後の最初の ```yaml フェンスを探し、トップレベルキーごとの
- * 行範囲（1始まり・両端含む）を返す。フェンスがなければ null。
- */
-function parseSpecBlocks(lines) {
-  let fmEnd = 0;
-  if (lines[0] === '---') {
-    for (let i = 1; i < lines.length; i++) {
-      if (/^---\s*$/.test(lines[i])) { fmEnd = i; break; }
-    }
-  }
-
-  let fenceStart = -1;
-  let fenceEnd = -1;
-  for (let i = fmEnd + 1; i < lines.length; i++) {
-    if (fenceStart === -1) {
-      if (/^```ya?ml\s*$/.test(lines[i])) fenceStart = i;
-    } else if (/^```\s*$/.test(lines[i])) {
-      fenceEnd = i;
-      break;
-    }
-  }
-  if (fenceStart === -1 || fenceEnd === -1) return null;
-
-  const lastNonEmpty = (idx) => {
-    while (idx > fenceStart && lines[idx].trim() === '') idx -= 1;
-    return idx;
-  };
-
-  const blocks = {};
-  const order = [];
-  let current = null;
-  let currentStart = -1;
-  for (let i = fenceStart + 1; i < fenceEnd; i++) {
-    const m = lines[i].match(/^([^\s#-][^:]*):/);
-    if (!m) continue;
-    if (current) blocks[current] = [currentStart + 1, lastNonEmpty(i - 1) + 1];
-    current = m[1].trim();
-    currentStart = i;
-    order.push(current);
-  }
-  if (current) blocks[current] = [currentStart + 1, lastNonEmpty(fenceEnd - 1) + 1];
-
-  return { blocks, order };
-}
-
-/** frontmatter 以降の最初のフェンス開始行が言語タグなし（```のみ）なら行番号を返す */
-function findUntaggedFence(lines) {
-  let fmEnd = 0;
-  if (lines[0] === '---') {
-    for (let i = 1; i < lines.length; i++) {
-      if (/^---\s*$/.test(lines[i])) { fmEnd = i; break; }
-    }
-  }
-  for (let i = fmEnd + 1; i < lines.length; i++) {
-    const m = lines[i].match(/^```(\S*)\s*$/);
-    if (m) return m[1] === '' ? i + 1 : -1;
-  }
-  return -1;
-}
-
-function blockText(lines, range) {
-  if (!range) return '';
-  return lines.slice(range[0] - 1, range[1]).join('\n');
-}
-
-function stripVal(v) {
-  return String(v == null ? '' : v).replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
-}
-
-/** テンプレートプレースホルダ（{...}）を含む値は突合対象にしない */
-function isPlaceholder(s) {
-  return /[{}]/.test(s);
-}
-
-/** `- key: value` で始まるリスト項目群を {key: value} の配列にする簡易パーサー */
-function parseListOfMaps(text) {
-  const items = [];
-  let cur = null;
-  for (const raw of text.split('\n')) {
-    const item = raw.match(/^\s*-\s+([^\s:]+):\s*(.*)$/);
-    if (item) {
-      cur = {};
-      cur[item[1]] = stripVal(item[2]);
-      items.push(cur);
-      continue;
-    }
-    const field = raw.match(/^\s+([^\s:-][^:]*):\s*(.*)$/);
-    if (field && cur) cur[field[1].trim()] = stripVal(field[2]);
-  }
-  return items;
-}
-
-/** 入出力ブロックから inputs / outputs / exceptions のサブリストを取り出す */
-function parseIo(text) {
-  const result = { inputs: [], outputs: [], exceptions: [] };
-  const lines = text.split('\n');
-  let section = null;
-  let buf = [];
-  const flush = () => {
-    if (section) result[section] = parseListOfMaps(buf.join('\n'));
-    buf = [];
-  };
-  for (const line of lines) {
-    const m = line.match(/^\s{2}(inputs|outputs|exceptions):\s*$/);
-    if (m) {
-      flush();
-      section = m[1];
-      continue;
-    }
-    if (section) buf.push(line);
-  }
-  flush();
-  return result;
-}
-
-function parseConstants(text) {
-  const consts = [];
-  for (const raw of text.split('\n').slice(1)) {
-    const m = raw.match(/^\s{2,}([A-Za-z0-9_]+):\s*(.+)$/);
-    if (m) consts.push({ name: m[1], value: stripVal(m[2]) });
-  }
-  return consts;
-}
-
-/** 公開IF ブロックのスカラーフィールドを取り出す */
-function parsePublicIf(text) {
-  const get = (key) => {
-    const m = text.match(new RegExp(`^\\s{2}${key}:\\s*(.+)$`, 'm'));
-    return m ? stripVal(m[1]) : null;
-  };
-  return { protocol: get('protocol'), method: get('method'), path: get('path') };
-}
-
-function parseCovers(raw) {
-  if (!raw) return [];
-  return raw.replace(/[\[\]]/g, '').split(',').map(s => s.trim()).filter(Boolean);
-}
-
-/** lint / drift で共有する仕様データを一度だけ組み立てる */
-function parseSpecData(lines, spec) {
-  const ioText = blockText(lines, spec.blocks['入出力']);
-  const ifText = blockText(lines, spec.blocks['公開IF']);
-  const flowText = blockText(lines, spec.blocks['フロー']);
-  const testText = blockText(lines, spec.blocks['テスト仕様']);
-  const nfText = blockText(lines, spec.blocks['非機能']);
-  return {
-    ioText, ifText, flowText, testText, nfText,
-    refText: [ioText, ifText, flowText, testText, nfText].join('\n'),
-    consts: parseConstants(blockText(lines, spec.blocks['定数'])),
-    io: parseIo(ioText),
-    tests: parseListOfMaps(testText),
-    publicIf: ifText ? parsePublicIf(ifText) : null,
-  };
-}
+// unmapped 検出の対象ルートと除外パターン
+const UNMAPPED_ROOTS = ['src', 'tests', 'backend/src', 'backend/tests', 'frontend/src', 'frontend/tests'];
+const UNMAPPED_IGNORE = ['node_modules', '__pycache__', '.venv', 'dist/', 'build/', '.next', 'coverage', 'fixtures', '__init__.py', 'conftest.py', '.d.ts', '.map'];
 
 // ── 検証1: 仕様 lint（ファイル内部の整合） ──────────────────────────────────
 
-function lintSpec(relPath, spec, data) {
+function lintSpec(relPath, spec, data, lines) {
   const warnings = [];
   const warn = (rule, message) => warnings.push({ file: relPath, rule, message });
 
   const present = spec.order;
 
-  // ブロックの存在・順序・未知キー
   for (const b of REQUIRED_BLOCKS) {
     if (!present.includes(b)) warn('missing-block', `必須ブロック「${b}」がない`);
   }
@@ -313,7 +86,7 @@ function lintSpec(relPath, spec, data) {
   for (const ex of data.io.exceptions) {
     if (!ex.type) continue;
     const covered = data.tests.some(t => {
-      const covers = parseCovers(t.covers).map(c => c.replace(/^exceptions\./, ''));
+      const covers = lib.parseCovers(t.covers).map(c => c.replace(/^exceptions\./, ''));
       if (ex.cond && covers.some(c => ex.cond.includes(c) || c.includes(ex.cond))) return true;
       return ((t.case || '') + ' ' + (t.covers || '')).includes(ex.type);
     });
@@ -340,6 +113,52 @@ function lintSpec(relPath, spec, data) {
     seen.add(t.id);
   }
 
+  // 公開IF: method と成功ステータスの整合
+  if (data.publicIf && data.ifText) {
+    const rawMethod = data.publicIf.method || '';
+    const methodUpper = rawMethod.toUpperCase().replace(/[^A-Z]/g, '');
+    const successMatch = data.ifText.match(/^\s{2}成功:\s*(\d{3})/m);
+    const successStatus = successMatch ? successMatch[1] : null;
+    if (methodUpper && successStatus && !lib.isPlaceholder(rawMethod) && !lib.isPlaceholder(successStatus)) {
+      const METHOD_VALID = { GET: ['200'], POST: ['200', '201'], PUT: ['200', '204'], PATCH: ['200', '204'], DELETE: ['200', '204'] };
+      const valid = METHOD_VALID[methodUpper];
+      if (valid && !valid.includes(successStatus)) {
+        warn('method-status-mismatch', `公開IF: ${methodUpper} の成功ステータス ${successStatus} は標準外（期待: ${valid.join(' / ')}）`);
+      }
+    }
+  }
+
+  // 状態遷移: 遷移の from/to が状態一覧に定義されているか
+  const stateText = lib.blockText(lines, spec.blocks['状態']);
+  if (stateText) {
+    const listMatch = stateText.match(/状態一覧:\s*\[([^\]]+)\]/);
+    if (listMatch) {
+      const defined = new Set(listMatch[1].split(',').map(s => s.trim()));
+      const seen = new Set();
+      for (const m of stateText.matchAll(/\{\s*from:\s*([^,}]+),\s*to:\s*([^,}]+),/g)) {
+        for (const state of [m[1].trim(), m[2].trim()]) {
+          if (!defined.has(state) && !seen.has(state)) {
+            warn('undefined-state', `状態遷移の「${state}」が状態一覧に定義されていない`);
+            seen.add(state);
+          }
+        }
+      }
+    }
+  }
+
+  // 曖昧語: LLM が解釈でブレる表現を仕様に書かない
+  const allRanges = Object.values(spec.blocks);
+  const minLine = Math.min(...allRanges.map(r => r[0]));
+  const maxLine = Math.max(...allRanges.map(r => r[1]));
+  for (let i = minLine; i <= maxLine; i++) {
+    const line = lines[i - 1];
+    if (line === undefined || lib.isPlaceholder(line)) continue;
+    const m = line.match(AMBIGUOUS_WORDS);
+    if (m) {
+      warn('ambiguous-wording', `${i}行目に曖昧語「${m[0].trim().replace(/[、。)\s]$/, '')}」（条件・範囲を具体化する）`);
+    }
+  }
+
   return warnings;
 }
 
@@ -347,57 +166,51 @@ function lintSpec(relPath, spec, data) {
 
 /**
  * maps_to 先のコードを読み、仕様に宣言された値が実装に現れるかを突合する。
- * 文字列で機械判定できる項目だけを対象とし、意味論（フロー順序・tx 境界・
- * ステータスコードの集中マッピング等）は LLM レビューに委ねる。
+ * 文字列で機械判定できる項目のみ。意味論（フロー順序・tx・ステータス集中マッピング）は LLM レビュー。
  */
 function driftSpec(relPath, data, mapsTo) {
   const warnings = [];
   const warn = (rule, message) => warnings.push({ file: relPath, rule, message });
 
-  // maps_to をテスト系と実装系に分けて中身を読む
   let srcText = '';
   let testText = '';
   for (const mapped of mapsTo) {
-    const files = collectFiles(path.join(ROOT, mapped));
+    const files = lib.collectFiles(path.join(ROOT, mapped));
     const text = files.map(f => {
       try { return fs.readFileSync(f, 'utf8'); } catch { return ''; }
     }).join('\n');
     if (/(^|\/)tests?\//.test(mapped)) testText += text + '\n';
     else srcText += text + '\n';
   }
-  if (srcText === '' && testText === '') return warnings; // 実装前（red phase 以前）は突合しない
+  if (srcText === '' && testText === '') return warnings; // 実装前は突合しない
 
-  // 定数: 名前または値が実装に現れるか
   if (srcText !== '') {
     for (const c of data.consts) {
-      if (isPlaceholder(c.name) || isPlaceholder(c.value)) continue;
+      if (c.driftOk || lib.isPlaceholder(c.name) || lib.isPlaceholder(c.value)) continue;
       if (!srcText.includes(c.name) && !(c.value.length >= 3 && srcText.includes(c.value))) {
-        warn('constant-drift', `定数 ${c.name}（値 ${c.value}）が maps_to の実装に現れない`);
+        warn('constant-drift', `定数 ${c.name}（値 ${c.value}）が maps_to の実装に現れない（意図的な間接参照なら # drift-ok: <経路> を付ける）`);
       }
     }
 
-    // 公開IF: path と method が実装に現れるか
     if (data.publicIf) {
       const { method, path: ifPath } = data.publicIf;
-      if (ifPath && ifPath.startsWith('/') && !isPlaceholder(ifPath) && !srcText.includes(ifPath)) {
+      if (ifPath && ifPath.startsWith('/') && !lib.isPlaceholder(ifPath) && !srcText.includes(ifPath)) {
         warn('endpoint-drift', `公開IF の path「${ifPath}」が maps_to の実装に現れない（Router 未配線の可能性）`);
       }
-      if (method && !isPlaceholder(method) && !new RegExp(method, 'i').test(srcText)) {
+      if (method && !lib.isPlaceholder(method) && !new RegExp(method, 'i').test(srcText)) {
         warn('endpoint-drift', `公開IF の method「${method}」が maps_to の実装に現れない`);
       }
     }
 
-    // 例外型: 実装に現れるか
     for (const ex of data.io.exceptions) {
-      if (!ex.type || isPlaceholder(ex.type)) continue;
+      if (!ex.type || lib.isPlaceholder(ex.type)) continue;
       if (!srcText.includes(ex.type)) {
         warn('exception-drift', `例外型 ${ex.type} が maps_to の実装に現れない`);
       }
     }
 
-    // input 名: 実装に現れるか（仕様駆動では引数名は仕様と一致させる）
     for (const input of data.io.inputs) {
-      if (!input.name || isPlaceholder(input.name)) continue;
+      if (!input.name || lib.isPlaceholder(input.name)) continue;
       if (!srcText.includes(input.name)) {
         warn('input-drift', `input「${input.name}」が maps_to の実装に現れない`);
       }
@@ -408,7 +221,6 @@ function driftSpec(relPath, data, mapsTo) {
   if (testText !== '') {
     const specIds = new Set(data.tests.map(t => t.id).filter(id => id && /^T-\d{2,3}$/.test(id)));
     const implIds = new Set();
-    // テスト関数名では T_01 形式（- が _ に置換）になるため両形式を拾う
     // 前が英数字でなく（_T_01 は許容）、後ろに数字が続かない（T-1234 を除外）
     for (const m of testText.matchAll(/(?<![A-Za-z0-9])T[-_](\d{2,3})(?![0-9])/g)) implIds.add(`T-${m[1]}`);
     for (const id of specIds) {
@@ -422,19 +234,97 @@ function driftSpec(relPath, data, mapsTo) {
   return warnings;
 }
 
+// ── 検証3: 要件定義からの REQ 抽出 ──────────────────────────────────────────
+
+/** `- REQ-XX: <本文>` 形式の要件定義行を抽出する */
+function parseRequirements(relPath, content) {
+  const reqs = {};
+  for (const m of content.matchAll(/^\s*[-*]?\s*(REQ-\d{2,3})[:：]\s*(.+)$/gm)) {
+    if (lib.isPlaceholder(m[2])) continue;
+    reqs[m[1]] = { file: relPath, text: m[2].trim(), satisfied_by: [] };
+  }
+  return reqs;
+}
+
+// ── 検証3b: policy-drift（エラーポリシー ⇔ UC 公開IF のステータスコード突合） ──
+
+/** エラーポリシーの ステータスコードマッピング ブロックを { 例外型: "ステータスコード" } に変換 */
+function parseErrorPolicy(lines, spec) {
+  if (!spec || !spec.blocks['ステータスコードマッピング']) return {};
+  const [s, e] = spec.blocks['ステータスコードマッピング'];
+  const text = lines.slice(s - 1, e).join('\n');
+  const policy = {};
+  for (const item of lib.parseListOfMaps(text)) {
+    if (item.exception && item.status) policy[item.exception] = String(item.status);
+  }
+  return policy;
+}
+
+/** UC の 公開IF.エラー と errorPolicy を突合して policy-drift を返す */
+function checkPolicyDrift(relPath, data, errorPolicy) {
+  const warnings = [];
+  if (!data.ifText || Object.keys(errorPolicy).length === 0) return warnings;
+  for (const m of data.ifText.matchAll(/^\s*-\s*exceptions\.([^->\n]+?)\s*->\s*(\d{3})/gm)) {
+    const cond = m[1].trim();
+    const ucStatus = m[2];
+    const ex = data.io.exceptions.find(e => e.cond && (e.cond.includes(cond) || cond.includes(e.cond)));
+    if (!ex || !ex.type || lib.isPlaceholder(ex.type)) continue;
+    const policyStatus = errorPolicy[ex.type];
+    if (policyStatus && policyStatus !== ucStatus) {
+      warnings.push({ file: relPath, rule: 'policy-drift',
+        message: `例外型 ${ex.type} のステータスコードがエラーポリシー（${policyStatus}）と一致しない（公開IF: ${ucStatus}）` });
+    }
+  }
+  return warnings;
+}
+
+// ── 検証4: unmapped（仕様なきコード） ───────────────────────────────────────
+
+function findUnmapped(allMapsTo) {
+  const fileSet = new Set();
+  const dirPrefixes = [];
+  for (const mapped of allMapsTo) {
+    const abs = path.join(ROOT, mapped);
+    if (mapped.endsWith('/') || (fs.existsSync(abs) && fs.statSync(abs).isDirectory())) {
+      dirPrefixes.push(mapped.replace(/\/$/, '') + '/');
+    } else {
+      fileSet.add(mapped);
+    }
+  }
+
+  const unmapped = [];
+  for (const root of UNMAPPED_ROOTS) {
+    for (const abs of lib.collectFiles(path.join(ROOT, root))) {
+      const rel = path.relative(ROOT, abs);
+      if (UNMAPPED_IGNORE.some(p => rel.includes(p))) continue;
+      if (fileSet.has(rel)) continue;
+      if (dirPrefixes.some(d => rel.startsWith(d))) continue;
+      unmapped.push(rel);
+    }
+  }
+  return unmapped;
+}
+
 // ── メイン ──────────────────────────────────────────────────────────────────
 
 function main() {
-  const files = findMdFiles(DOCS_DIR);
+  const strict = process.argv.includes('--strict');
+  const files = lib.findMdFiles(lib.DOCS_DIR);
 
   const graph = {
     generated_at: new Date().toISOString(),
-    nodes: {},         // node_id → { file, kind, depends_on, maps_to, blocks }
-    reverse_index: {}, // node_id → [依存元 node_id のリスト]（影響範囲検索用）
-    missing_maps_to: [], // { source, node_id, missing } 存在しないファイル参照
-    lint: [],          // { file, rule, message } 仕様ファイル内部の警告
-    drift: [],         // { file, rule, message } 仕様⇔実装の乖離警告
+    nodes: {},          // node_id → { file, kind, depends_on, maps_to, blocks, satisfies }
+    reverse_index: {},  // node_id → [依存元 node_id]
+    requirements: {},   // REQ-XX → { file, text, satisfied_by }
+    error_policy: {},   // 例外型 → ステータスコード（エラーポリシーから）
+    missing_maps_to: [],
+    lint: [],
+    drift: [],
+    unmapped: [],       // どの maps_to にも属さない src/tests ファイル
   };
+
+  const allMapsTo = [];
+  const nodeDataCache = {};  // policy-drift の2パス目用（node_id → { data, relPath }）
 
   for (const file of files) {
     let content;
@@ -444,70 +334,164 @@ function main() {
       continue;
     }
 
-    const fm = parseSpecRunnerFrontmatter(content);
+    const fm = lib.parseSpecRunnerFrontmatter(content);
     if (!fm) continue;
 
     const relPath = path.relative(ROOT, file);
     const { node_id, kind, depends_on, maps_to } = fm;
     const lines = content.split('\n');
 
-    // 本文の仕様YAMLブロック（あれば行範囲を記録し lint / drift を行う）
-    const spec = parseSpecBlocks(lines);
+    // 要件定義系から REQ-XX を収集
+    if (kind && /^require/.test(kind)) {
+      Object.assign(graph.requirements, parseRequirements(relPath, content));
+    }
+
+    const spec = lib.parseSpecBlocks(lines);
+    let satisfies = [];
+    if (spec) {
+      const data = lib.parseSpecData(lines, spec);
+      satisfies = data.satisfies;
+      nodeDataCache[node_id] = { data, relPath };
+      // common_policy は標準 lint/drift をスキップ（ブロック構成が UC と異なる）
+      if (kind !== 'common_policy') {
+        graph.lint.push(...lintSpec(relPath, spec, data, lines));
+        graph.drift.push(...driftSpec(relPath, data, maps_to));
+      }
+    } else if (kind === 'detailed_design') {
+      const ln = lib.findUntaggedFence(lines);
+      if (ln > 0) {
+        graph.lint.push({ file: relPath, rule: 'untagged-fence', message: `${ln}行目のフェンスに言語タグがない（\`\`\`yaml にする。タグなしは仕様として検証されない）` });
+      }
+    }
+
     graph.nodes[node_id] = {
       file: relPath,
       kind,
       depends_on,
       maps_to,
       blocks: spec ? spec.blocks : null,
+      satisfies,
     };
-    if (spec) {
-      const data = parseSpecData(lines, spec);
-      graph.lint.push(...lintSpec(relPath, spec, data));
-      graph.drift.push(...driftSpec(relPath, data, maps_to));
-    } else if (kind === 'detailed_design') {
-      // タグなしフェンスは仕様として認識されず lint / drift / 抽出から漏れる
-      const ln = findUntaggedFence(lines);
-      if (ln > 0) {
-        graph.lint.push({ file: relPath, rule: 'untagged-fence', message: `${ln}行目のフェンスに言語タグがない（\`\`\`yaml にする。タグなしは仕様として検証されない）` });
-      }
-    }
 
-    // リバースインデックスを構築（A が B に depends_on → reverse_index[B].push(A)）
     for (const dep of depends_on) {
       if (!graph.reverse_index[dep]) graph.reverse_index[dep] = [];
       graph.reverse_index[dep].push(node_id);
     }
 
-    // maps_to の実在チェック
     for (const mapped of maps_to) {
-      const mappedPath = path.join(ROOT, mapped);
-      if (!fs.existsSync(mappedPath)) {
+      allMapsTo.push(mapped);
+      if (!fs.existsSync(path.join(ROOT, mapped))) {
         graph.missing_maps_to.push({ source: relPath, node_id, missing: mapped });
       }
     }
   }
 
+  // 要件トレーサビリティ: satisfies の逆引きと未カバー検出
+  for (const [id, node] of Object.entries(graph.nodes)) {
+    for (const req of node.satisfies || []) {
+      if (graph.requirements[req]) {
+        graph.requirements[req].satisfied_by.push(id);
+      } else {
+        graph.lint.push({ file: node.file, rule: 'unknown-requirement-ref', message: `satisfies の ${req} が要件定義に存在しない` });
+      }
+    }
+  }
+  for (const [req, info] of Object.entries(graph.requirements)) {
+    if (info.satisfied_by.length === 0) {
+      graph.lint.push({ file: info.file, rule: 'uncovered-requirement', message: `${req}「${info.text}」を satisfies で引き受ける設計書がない（実装漏れの可能性）` });
+    }
+  }
+
+  // dead-depends_on: depends_on に存在しない node_id を参照
+  for (const [id, node] of Object.entries(graph.nodes)) {
+    for (const dep of node.depends_on || []) {
+      if (!graph.nodes[dep] && !lib.isPlaceholder(dep)) {
+        graph.lint.push({ file: node.file, rule: 'dead-depends_on',
+          message: `depends_on「${dep}」に対応するノードが存在しない` });
+      }
+    }
+  }
+
+  // duplicate-maps_to: 複数ノードが同じファイルを maps_to（正本が曖昧）
+  const mapsToIndex = {};
+  for (const [id, node] of Object.entries(graph.nodes)) {
+    for (const m of node.maps_to || []) {
+      if (!mapsToIndex[m]) mapsToIndex[m] = [];
+      mapsToIndex[m].push(id);
+    }
+  }
+  for (const [mapped, owners] of Object.entries(mapsToIndex)) {
+    if (owners.length > 1) {
+      for (const id of owners) {
+        graph.lint.push({ file: graph.nodes[id].file, rule: 'duplicate-maps_to',
+          message: `${mapped} が複数ノード（${owners.join(', ')}）から maps_to されている（正本が曖昧）` });
+      }
+    }
+  }
+
+  // cycle-depends_on: 循環依存の検出（DFS）
+  {
+    const fullyVisited = new Set();
+    const inStack = new Set();
+    const stackPath = [];
+    const cycleWarns = [];
+    function dfsCycle(id) {
+      if (inStack.has(id)) {
+        const start = stackPath.indexOf(id);
+        cycleWarns.push({ file: graph.nodes[id]?.file || id, rule: 'cycle-depends_on',
+          message: `循環依存: ${stackPath.slice(start).concat(id).join(' → ')}` });
+        return;
+      }
+      if (fullyVisited.has(id)) return;
+      inStack.add(id); stackPath.push(id);
+      for (const dep of graph.nodes[id]?.depends_on || []) {
+        if (graph.nodes[dep]) dfsCycle(dep);
+      }
+      stackPath.pop(); inStack.delete(id); fullyVisited.add(id);
+    }
+    for (const id of Object.keys(graph.nodes)) dfsCycle(id);
+    graph.lint.push(...cycleWarns);
+  }
+
+  // policy-drift: エラーポリシーが存在すれば全 UC と突合する
+  const policyEntry = Object.entries(graph.nodes).find(([, n]) => n.kind === 'common_policy');
+  if (policyEntry) {
+    const policyAbs = path.join(ROOT, policyEntry[1].file);
+    if (fs.existsSync(policyAbs)) {
+      const policyLines = fs.readFileSync(policyAbs, 'utf8').split('\n');
+      const policySpec = lib.parseSpecBlocks(policyLines);
+      graph.error_policy = parseErrorPolicy(policyLines, policySpec);
+      for (const { data, relPath: rp } of Object.values(nodeDataCache)) {
+        graph.drift.push(...checkPolicyDrift(rp, data, graph.error_policy));
+      }
+    }
+  }
+
+  graph.unmapped = findUnmapped(allMapsTo);
+
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(graph, null, 2));
+  fs.writeFileSync(lib.GRAPH_FILE, JSON.stringify(graph, null, 2));
 
   if (graph.lint.length > 0) {
     console.warn(`spec lint: ${graph.lint.length} warning(s)`);
-    for (const w of graph.lint) {
-      console.warn(`  LINT [${w.rule}] ${w.file}: ${w.message}`);
-    }
+    for (const w of graph.lint) console.warn(`  LINT [${w.rule}] ${w.file}: ${w.message}`);
   }
   if (graph.drift.length > 0) {
     console.warn(`spec drift: ${graph.drift.length} warning(s)`);
-    for (const w of graph.drift) {
-      console.warn(`  DRIFT [${w.rule}] ${w.file}: ${w.message}`);
-    }
+    for (const w of graph.drift) console.warn(`  DRIFT [${w.rule}] ${w.file}: ${w.message}`);
+  }
+  if (graph.unmapped.length > 0) {
+    console.warn(`unmapped: ${graph.unmapped.length} file(s) に対応する設計書がない（仕様なきコード）`);
+    for (const f of graph.unmapped.slice(0, 20)) console.warn(`  UNMAPPED ${f}`);
+    if (graph.unmapped.length > 20) console.warn(`  ... 他 ${graph.unmapped.length - 20} 件`);
   }
 
   const nodeCount = Object.keys(graph.nodes).length;
-  const rel = path.relative(ROOT, OUTPUT_FILE);
+  const rel = path.relative(ROOT, lib.GRAPH_FILE);
   const counts = [];
   if (graph.lint.length > 0) counts.push(`lint: ${graph.lint.length}`);
   if (graph.drift.length > 0) counts.push(`drift: ${graph.drift.length}`);
+  if (graph.unmapped.length > 0) counts.push(`unmapped: ${graph.unmapped.length}`);
   console.log(`spec-runner scan: ${nodeCount} nodes indexed → ${rel}${counts.length ? ` (${counts.join(', ')})` : ''}`);
 
   if (graph.missing_maps_to.length > 0) {
@@ -516,6 +500,9 @@ function main() {
       console.warn(`  MISSING  ${m.missing}`);
       console.warn(`           in ${m.source} (${m.node_id})`);
     }
+    process.exit(1);
+  }
+  if (strict && (graph.lint.length > 0 || graph.drift.length > 0 || graph.unmapped.length > 0)) {
     process.exit(1);
   }
 }

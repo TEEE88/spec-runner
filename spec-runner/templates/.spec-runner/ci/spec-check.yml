@@ -1,0 +1,19 @@
+# spec-runner CI ゲート（任意導入）
+# 使い方: このファイルを .github/workflows/spec-check.yml にコピーし、
+#         SCAN_PATH をインストール先（.claude/.spec-runner 等）に合わせる。
+# hooks がローカルの速いフィードバック、この CI が PR 合流ゲート。
+name: spec-check
+on:
+  pull_request:
+jobs:
+  spec-check:
+    runs-on: ubuntu-latest
+    env:
+      SCAN_PATH: .claude/.spec-runner/scripts/scan.js
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # --strict: lint / drift / unmapped が 1 件でもあれば fail
+      - run: node "$SCAN_PATH" --strict

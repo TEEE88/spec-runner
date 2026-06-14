@@ -54,7 +54,7 @@ checklist:
 チェックリストの docs を上流 -> 下流に1パスで修正。完了ごとに `status` 更新。
 
 - **3a. 概要設計**（変更ある場合のみ）: 「何をするか」に留める。バックエンド（scope: frontend はスキップ）-> フロントエンド（scope: backend はスキップ）-> API 変更時は `API仕様.md`
-- **3b. 詳細設計**: ハイブリッド仕様YAML形式（design-docs.md）。テスト仕様の追加・変更もここで確定。`depends_on`/`maps_to` 更新。hooks の lint 警告はこの場で直す
+- **3b. 詳細設計**: ハイブリッド仕様YAML形式（design-docs.md）。テスト仕様の追加・変更もここで確定。`depends_on`/`maps_to`/`satisfies`（要件が増減した場合は要件定義の REQ も）更新。hooks の lint 警告はこの場で直す
 - **3c. マイグレーション戦略**（DB 変更時のみ）: Up/Down・ゼロダウンタイム・ロールバック・データ変換を更新
 - **3d. ベストプラクティス調査**（未知技術がある場合のみ）: URL を `.spec-runner/references/resources.md` に追記 -> WebSearch -> `docs/04_調査資料/{カテゴリ名}/{トピック名}.md`
 

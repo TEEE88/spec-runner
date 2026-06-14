@@ -1,0 +1,87 @@
+{
+  "generated_at": "2026-06-14T09:11:44.245Z",
+  "nodes": {
+    "詳細.ユースケース.注文確定": {
+      "file": "docs/サンプル/仕様書サンプル_UC-注文確定.md",
+      "kind": "detailed_design",
+      "depends_on": [],
+      "maps_to": [],
+      "blocks": {
+        "概要": [
+          10,
+          12
+        ],
+        "入出力": [
+          14,
+          20
+        ],
+        "状態": [
+          22,
+          26
+        ],
+        "フロー": [
+          28,
+          40
+        ],
+        "テスト仕様": [
+          42,
+          49
+        ]
+      },
+      "satisfies": []
+    },
+    "詳細.共通.エラーポリシー": {
+      "file": "docs/サンプル/共通/エラーポリシー.md",
+      "kind": "common_policy",
+      "depends_on": [],
+      "maps_to": [],
+      "blocks": {
+        "概要": [
+          10,
+          12
+        ],
+        "ステータスコードマッピング": [
+          14,
+          38
+        ],
+        "レスポンス形式": [
+          40,
+          45
+        ],
+        "リトライポリシー": [
+          47,
+          51
+        ],
+        "ロールバック方針": [
+          53,
+          59
+        ],
+        "ログポリシー": [
+          61,
+          71
+        ],
+        "補足": [
+          73,
+          75
+        ]
+      },
+      "satisfies": []
+    }
+  },
+  "reverse_index": {},
+  "requirements": {},
+  "error_policy": {
+    "ValidationError": "400",
+    "AuthenticationError": "401",
+    "PermissionError": "403",
+    "NotFoundError": "404",
+    "ConflictError": "409",
+    "DomainError": "422",
+    "ExternalServiceError": "503",
+    "InternalError": "500"
+  },
+  "missing_maps_to": [],
+  "lint": [],
+  "drift": [],
+  "unmapped": []
+}
