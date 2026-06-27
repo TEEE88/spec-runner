@@ -1,68 +1,66 @@
 {
-  "generated_at": "2026-06-14T09:11:44.245Z",
+  "generated_at": "2026-06-27T10:16:48.552Z",
   "nodes": {
     "詳細.ユースケース.注文確定": {
       "file": "docs/サンプル/仕様書サンプル_UC-注文確定.md",
-      "kind": "detailed_design",
       "depends_on": [],
       "maps_to": [],
       "blocks": {
         "概要": [
-          10,
-          12
+          9,
+          11
         ],
         "入出力": [
-          14,
-          20
+          13,
+          19
         ],
         "状態": [
-          22,
-          26
+          21,
+          25
         ],
         "フロー": [
-          28,
-          40
+          27,
+          39
         ],
         "テスト仕様": [
-          42,
-          49
+          41,
+          48
         ]
       },
       "satisfies": []
     },
     "詳細.共通.エラーポリシー": {
       "file": "docs/サンプル/共通/エラーポリシー.md",
-      "kind": "common_policy",
       "depends_on": [],
       "maps_to": [],
       "blocks": {
         "概要": [
-          10,
-          12
+          9,
+          11
         ],
         "ステータスコードマッピング": [
-          14,
-          38
+          13,
+          37
         ],
         "レスポンス形式": [
-          40,
-          45
+          39,
+          44
         ],
         "リトライポリシー": [
-          47,
-          51
+          46,
+          50
         ],
         "ロールバック方針": [
-          53,
-          59
+          52,
+          58
         ],
         "ログポリシー": [
-          61,
-          71
+          60,
+          70
         ],
         "補足": [
-          73,
-          75
+          72,
+          74
         ]
       },
       "satisfies": []
@@ -70,16 +68,7 @@
   },
   "reverse_index": {},
   "requirements": {},
-  "error_policy": {
-    "ValidationError": "400",
-    "AuthenticationError": "401",
-    "PermissionError": "403",
-    "NotFoundError": "404",
-    "ConflictError": "409",
-    "DomainError": "422",
-    "ExternalServiceError": "503",
-    "InternalError": "500"
-  },
+  "error_policy": {},
   "missing_maps_to": [],
   "lint": [],
   "drift": [],

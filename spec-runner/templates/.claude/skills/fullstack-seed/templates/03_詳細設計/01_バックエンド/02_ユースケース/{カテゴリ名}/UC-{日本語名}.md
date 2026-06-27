@@ -1,7 +1,6 @@
 ---
 spec_runner:
   node_id: 詳細.ユースケース.{UC名}
-  kind: detailed_design
   depends_on:
     - 概要.バックエンド.業務ロジック概要
     - 詳細.ドメイン.{ドメイン名}

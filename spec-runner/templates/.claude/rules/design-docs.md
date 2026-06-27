@@ -6,17 +6,17 @@ applyTo: "docs/**"
 
 ## ヘッダー
 
-- `docs/**` 全設計書に frontmatter 必須。必須項目: `spec_runner.node_id` / `kind` / `depends_on` / `maps_to`
+- `docs/**` 全設計書に frontmatter 必須。必須項目: `spec_runner.node_id` / `depends_on` / `maps_to`
+- `kind` は不要。`docs/` のパスから自動導出（`01_` → requirement / `02_` → overview_design / `03_/*/00_共通/` → common_policy / `03_` → detailed_design）
 - `depends_on`: 文字列配列。依存理由が必要な場合のみオブジェクト形式
 - `maps_to`: `src/` / `tests/` / IaC / 設定ファイルを列挙。空にしない。唯一の src 対応（パス推定禁止）
-- 設計記録（ADR）は `node_id` と `kind` のみ（決定の記録。実装トレーサビリティに乗らない）
+- 設計記録（ADR）は `node_id` のみ（決定の記録。実装トレーサビリティに乗らない）
 - 拡張項目（`modules` 等）を足す場合も `maps_to` と矛盾させない
 
 ```yaml
 ---
 spec_runner:
   node_id: 詳細.ユースケース.注文確定
-  kind: detailed_design
   depends_on:
     - 概要.バックエンド.ドメインモデル
     - 詳細.ドメイン.注文
@@ -53,7 +53,6 @@ spec_runner:
 | ドメイン | `詳細.ドメイン.{ドメイン名}` | `詳細.ドメイン.注文` |
 | ユースケース | `詳細.ユースケース.{UC名}` | `詳細.ユースケース.注文確定` |
 | 共通ポリシー | `詳細.共通.{ポリシー名}` | `詳細.共通.エラーポリシー` |
-| DB・マイグレーション | `詳細.データベース.{名前}` | `詳細.データベース.マイグレーション戦略` |
 | 外部サービス | `詳細.外部サービス.{名前}` | `詳細.外部サービス.S3` |
 | 画面 | `詳細.画面.{画面名}` | `詳細.画面.ログイン` |
 | コンポーネント | `詳細.コンポーネント.{名前}` | `詳細.コンポーネント.ボタン` |
@@ -90,7 +89,7 @@ spec_runner:
 
 対象: 実装と1対1対応する詳細設計（UC・ドメイン・画面・コンポーネント・外部サービス）。frontmatter 直後に ```yaml フェンスを1つだけ置き、本文は全てその中に書く。フェンス外の記述禁止（抽出・lint から漏れる）。例外はファイル末尾の自動生成マーカー区間（`<!-- spec-runner:figure:start/end -->`）のみ — render.js が管理する。手で編集・削除しない。
 
-対象外: 戦略文書（`マイグレーション戦略.md` 等）と `スキーマ定義.dbml` -> 通常の Markdown / DBML。
+対象外: `スキーマ定義.dbml` -> 通常の DBML。
 
 ### ブロック構成（順序固定）
 
@@ -108,7 +107,7 @@ spec_runner:
 
 ### 要件トレーサビリティ（REQ）
 
-- 要件定義の「受け入れ基準」に `REQ-XX: <状況>のとき、システムは<振る舞い>すること` を1件1行で書く（kind が `requirement` のファイルから収集される）
+- 要件定義の「機能要件」に `REQ-XX` 形式で書く（`docs/01_要件定義/` 配下のファイルから収集される）
 - 詳細設計は `概要.satisfies: [REQ-XX]` で要件を引き受ける。UC・画面は必須（ユーザー価値の単位）、ドメイン・コンポーネント・外部サービスは該当があれば書く
 - lint が双方向に検証: 引き受け先のない REQ（実装漏れ）/ 存在しない REQ への参照
 
@@ -148,7 +147,7 @@ spec_runner:
 ### 図（Mermaid）
 
 - 詳細設計に図を**手で書かない・生成する**。`render.js` が フロー -> flowchart / `状態.遷移` -> stateDiagram を**各設計書の末尾マーカー区間に埋め込む**（hooks で常に最新。仕様を直せば図も追従する）
-- 横断図は `docs/_generated/`: `dependencies.md`（依存グラフ）と `dashboard.md`（健康表・要件カバレッジ・警告一覧）
+- 横断図は `.spec-runner/scan/`: `dependencies.md`（依存グラフ）と `dashboard.md`（健康表・要件カバレッジ・警告一覧）。AI が phase-gate チェックに使う。`.gitignore` 対象
 - 俯瞰図（システム構成・画面遷移・ドメイン概念）は概要設計に Mermaid で書く
 
 ```yaml
@@ -220,7 +219,7 @@ spec_runner:
 
 `scan.js` が Edit / Write のたび hooks で検証。警告は放置せず直す。
 
-**lint（仕様内整合）**: 必須ブロック欠落・順序違反・未知ブロック / 死に定数 / 値の直書き / 例外カバレッジ / 公開IF エラー参照の実在 / T-XX 形式・重複 / 未参照 input / 曖昧語 / タグなしフェンス / REQ カバレッジ（未実装要件・存在しない REQ 参照）/ HTTP method vs 成功ステータス整合（GET→200 / POST→200,201 等）/ 状態遷移の from・to が状態一覧に未定義 / depends_on に存在しない node_id / 複数ノードが同一ファイルを maps_to / 循環 depends_on
+**lint（仕様内整合）**: 必須ブロック欠落・順序違反・未知ブロック / 死に定数 / 値の直書き / 例外カバレッジ / 公開IF エラー参照の実在 / T-XX 形式・重複 / 未参照 input / 曖昧語 / タグなしフェンス / REQ カバレッジ（未実装要件・存在しない REQ 参照）/ HTTP method vs 成功ステータス整合（GET→200 / POST→200,201 等）/ 状態遷移の from・to が状態一覧に未定義 / depends_on に存在しない node_id / 複数ノードが同一ファイルを maps_to / 循環 depends_on / 業務ロジック概要の UC 一覧に対応する詳細設計が存在しない（uncovered-uc）/ 画面一覧に対応する詳細設計が存在しない（uncovered-screen）
 
 **drift（仕様⇔実装。maps_to 先コードを文字列突合）**: 定数（名前 or 値。`# drift-ok:` でスキップ可）/ 公開IF の path・method（Router 未配線検出）/ 例外型 / input 名 / T-XX 双方向 / エラーポリシーとの例外型↔ステータスコード突合（policy-drift）
 

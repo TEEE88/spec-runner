@@ -14,7 +14,7 @@ Phase 5: 一貫性検証
 Phase 6: セットアップ専用 skill のアーカイブ提案
 ```
 
-以降の書き換えは全て `architecture.yaml` の `integrations` に従う（`claude` -> `.claude/` のみ、`github` -> `.github/` のみ、両方 -> 対で更新）。
+以降の書き換えは全て `architecture.yaml` の `integrations` に従う（`claude` -> `.github/` のみ、`github` -> `.github/` のみ、両方 -> 対で更新）。
 
 ## Phase 1: 入力確認
 
@@ -93,6 +93,8 @@ seed からの作成時は `templates/` を新スキルへコピー（例: `cp -
 
 既存 skill / rule / agent との矛盾確認。`harness-engineering` が必要な改善点を洗い出す。
 
+**phase-gate**: `node .spec-runner/scripts/scan.js` でエラーなしを確認してから次へ。
+
 ## Phase 6: セットアップ専用 skill のアーカイブ提案
 
 開発ループ入り後は不要になる skill を、**ユーザー承認を得てから**整理（自動削除・移動禁止）。
@@ -115,3 +117,7 @@ seed からの作成時は `templates/` を新スキルへコピー（例: `cp -
 既存機能変更 -> `/design-change`
 テスト作成 -> `/test-driven-development`
 ```
+
+## Phase 7: ハーネスエンジニアリング（繰り返し発生した問題がある場合のみ）
+
+このサイクルで skill / rule / template の責務の曖昧さ・重複・不足が**繰り返し**発生した場合は `harness-engineering` で改善する。Phase 5 の一貫性検証で洗い出した改善点が起点になることが多い。1回限りの例外は対象外。

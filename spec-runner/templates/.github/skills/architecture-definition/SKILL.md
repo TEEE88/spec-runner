@@ -19,7 +19,7 @@ Phase 5: architecture-skill-development へ自動移行
 2. 作成スコープを確認: `all`（両方）/ `backend` / `frontend`
 3. バックエンドは DDD スタイル（ドメイン -> UC -> DB・外部サービスの順）で設計する（scope: frontend はスキップ）
 4. テンプレートから要件定義を作成: `docs/01_要件定義/要件定義.md`（テンプレート: `.github/skills/fullstack-seed/templates/01_要件定義/要件定義.md`）。scope に backend があれば `ユビキタス言語辞書.md` も
-5. AI 連携を確認: `claude`（`.claude/`）/ `github`（`.github/`）/ 両方
+5. AI 連携を確認: `claude`（`.github/`）/ `github`（`.github/`）/ 両方
 6. 承認を得る
 
 ## Phase 2: フォルダ構造の決定

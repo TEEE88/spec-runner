@@ -58,11 +58,8 @@ function parseSpecRunnerFrontmatter(content) {
   const nodeIdMatch = srBlock.match(/^\s+node_id:\s*(.+)$/m);
   if (!nodeIdMatch) return null;
 
-  const kindMatch = srBlock.match(/^\s+kind:\s*(.+)$/m);
-
   return {
     node_id: nodeIdMatch[1].trim(),
-    kind: kindMatch ? kindMatch[1].trim() : null,
     depends_on: parseYamlList(srBlock, 'depends_on'),
     maps_to: parseYamlList(srBlock, 'maps_to'),
   };

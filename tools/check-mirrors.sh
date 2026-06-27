@@ -23,9 +23,9 @@ done
 LEFT=$(grep -rno -E "\b(code-common|code-backend|code-frontend|test-backend|test-frontend|design-docs|agent-delegation)\.md\b" .github/ | grep -v "\.instructions\.md")
 [ -n "$LEFT" ] && { echo "未変換の bare ルール名:"; echo "$LEFT"; NG=1; }
 
-# 3. .github 側に .claude/rules/ ・.claude/agents/ 参照が残っていないか
+# 3. .github 側に .claude/ 参照が残っていないか
 #    （harness-format.md は両系運用の説明として .claude 言及が正当なので除外）
-LEFT=$(grep -rn "\.claude/rules/\|\.claude/agents/" .github/ --exclude=harness-format.md || true)
+LEFT=$(grep -rn "\.claude/" .github/ --exclude=harness-format.md || true)
 [ -n "$LEFT" ] && { echo ".claude パス参照の残存:"; echo "$LEFT"; NG=1; }
 
 [ $NG -eq 0 ] && echo "check-mirrors: OK（rules $(ls .claude/rules/*.md | wc -l | tr -d ' ') / agents $(ls .claude/agents/*.md | wc -l | tr -d ' ') / skills $(ls -d .claude/skills/*/ | wc -l | tr -d ' ')）"

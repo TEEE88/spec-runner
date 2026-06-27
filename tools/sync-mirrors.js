@@ -11,8 +11,9 @@
  *   agents/X.md           -> agents/X.agent.md（tools 名変換・model 行削除・AskUserQuestion -> 質問）
  *   skills/X/**           -> skills/X/**（そのままコピー + パス変換）
  *   本文共通: .claude/rules/X.md -> .github/instructions/X.instructions.md、bare ルール名 -> .instructions.md、
- *             .claude/skills/ -> .github/skills/
+ *             .claude/skills/ -> .github/skills/、残余 .claude/ -> .github/（キャッチオール）
  *   例外: agent-delegation の WebSearch 行は Copilot 非対応のため削除
+ *         tools/sync-mirrors.js 参照はキャッチオール後に除去（Copilot 環境に tools/ は存在しない）
  *
  * 使い方: node tools/sync-mirrors.js
  */
@@ -32,7 +33,10 @@ function transformBody(text) {
     .replace(new RegExp(`\\.claude/rules/(${RULE_NAMES})\\.md`, 'g'), '.github/instructions/$1.instructions.md')
     .replace(new RegExp(`\\b(${RULE_NAMES})\\.md(?!\\w)(?!\\.instructions)`, 'g'), '$1.instructions.md')
     .replace(/\.claude\/skills\//g, '.github/skills/')
-    .replace(/`AskUserQuestion`/g, '質問'); // Copilot に同名ツールはない
+    .replace(/`AskUserQuestion`/g, '質問') // Copilot に同名ツールはない
+    .replace(/\.claude\//g, '.github/') // キャッチオール: 残余 .claude/ → .github/
+    .replace(/。`\.github\/` は `node tools\/sync-mirrors\.js` で自動生成されるので手で触らない/g, '')
+    .replace(/してから sync-mirrors を実行/g, '');
 }
 
 function write(dest, content) {

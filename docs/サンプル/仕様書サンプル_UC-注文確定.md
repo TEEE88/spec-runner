@@ -1,7 +1,6 @@
 ---
 spec_runner:
   node_id: 詳細.ユースケース.注文確定
-  kind: detailed_design
   depends_on: []
   maps_to: []
 ---

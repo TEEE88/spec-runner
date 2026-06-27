@@ -32,9 +32,11 @@ Phase 6: TDD -> 実装
 
 `architecture-definition` で完了済み。`docs/01_要件定義/` の存在を確認して次へ。なければテンプレートから作成 -> 承認。
 
-- `要件定義.md` — 機能要件は「受け入れ基準」に `REQ-XX` 形式で書く（詳細設計の `satisfies` が引き受ける）
+- `要件定義.md` — 機能要件は「機能要件」ブロックに `REQ-XX` 形式で書く（詳細設計の `satisfies` が引き受ける）
 - `ユビキタス言語辞書.md`（scope に backend がある場合、ドメイン用語が識別できたら）
 - `00_インプット資料/` に企画書・ヒアリングメモ等
+
+**phase-gate**: `node .spec-runner/scripts/render.js` → `.spec-runner/scan/dashboard.md` を読み、要件カバレッジに REQ が定義されていることを確認してから承認を求める。
 
 ## Phase 2: 概要設計
 
@@ -89,11 +91,14 @@ docs/03_詳細設計/01_バックエンド/
   01_ドメイン/{ドメイン名}.md
   02_ユースケース/{カテゴリ名}/UC-{日本語名}.md   # カテゴリ = 集約・境界コンテキスト
   03_DB・外部サービス/                            # 必要時のみ
-    DB/スキーマ定義.dbml, マイグレーション戦略.md
+    DB/スキーマ定義.dbml
     {プロバイダー名}/{サービス名}.md               # AWS / GCP 等をカテゴリに
 ```
 
-承認を得る。
+**phase-gate**: `node .spec-runner/scripts/render.js` → `.spec-runner/scan/dashboard.md` を読み、以下を全て確認してから承認を求める:
+- lint: 0件
+- 全 REQ に実装設計書あり（未実装なし）
+- uncovered-uc / uncovered-screen: 0件
 
 ### 5-2. フロントエンド詳細設計
 
@@ -107,16 +112,16 @@ docs/03_詳細設計/02_フロントエンド/
   02_コンポーネント/{カテゴリ名}/{コンポーネント名}.md
 ```
 
-承認を得る。
-
-## Phase 5.5: マイグレーション戦略
-
-> `scope: frontend` はスキップ。
-
-スキーマ確定後・TDD 前。Migration ツール・命名規則・Up/Down 方針 -> ゼロダウンタイム要否 -> ロールバック・既存データの扱い -> `DB/マイグレーション戦略.md` 作成。
+**phase-gate**: `node .spec-runner/scripts/render.js` → `.spec-runner/scan/dashboard.md` を読み、以下を全て確認してから承認を求める:
+- lint: 0件
+- uncovered-screen: 0件
 
 ## Phase 6: TDD -> 実装
 
 `test-driven-development` スキルへ。
+
+**phase-gate（実装完了後）**: `node .spec-runner/scripts/render.js` → `.spec-runner/scan/dashboard.md` を読み、以下を全て確認してから完了とする:
+- drift: 0件
+- unmapped: 0件
 
 継続開発: 既存機能変更 -> `design-change` / 新機能追加 -> プロジェクト専用スキル（または `fullstack-seed`）。

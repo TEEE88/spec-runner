@@ -28,7 +28,7 @@ function git(args) {
 
 function nodeSummary(graph, id) {
   const n = graph.nodes[id] || {};
-  return { id, file: n.file || null, kind: n.kind || null, maps_to: n.maps_to || [] };
+  return { id, file: n.file || null, maps_to: n.maps_to || [] };
 }
 
 function main() {

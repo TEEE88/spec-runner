@@ -55,8 +55,7 @@ checklist:
 
 - **3a. 概要設計**（変更ある場合のみ）: 「何をするか」に留める。バックエンド（scope: frontend はスキップ）-> フロントエンド（scope: backend はスキップ）-> API 変更時は `API仕様.md`
 - **3b. 詳細設計**: ハイブリッド仕様YAML形式（design-docs.md）。テスト仕様の追加・変更もここで確定。`depends_on`/`maps_to`/`satisfies`（要件が増減した場合は要件定義の REQ も）更新。hooks の lint 警告はこの場で直す
-- **3c. マイグレーション戦略**（DB 変更時のみ）: Up/Down・ゼロダウンタイム・ロールバック・データ変換を更新
-- **3d. ベストプラクティス調査**（未知技術がある場合のみ）: URL を `.spec-runner/references/resources.md` に追記 -> WebSearch -> `docs/04_調査資料/{カテゴリ名}/{トピック名}.md`
+- **3c. ベストプラクティス調査**（未知技術がある場合のみ）: URL を `.spec-runner/references/resources.md` に追記 -> WebSearch -> `docs/04_調査資料/{カテゴリ名}/{トピック名}.md`
 
 全修正完了 -> 承認。
 
@@ -66,4 +65,12 @@ checklist:
 
 ## Step 5: 検証
 
-`@run-tests` と `@review` を**同時起動**。`@review` には node_id と「pairs_to_check のみ監査」を明記。両結果を確認 -> 問題あれば修正 -> checklist 全件 done -> 完了報告。
+`@run-tests` と `@review` を**同時起動**。`@review` には node_id と「pairs_to_check のみ監査」を明記。両結果を確認 -> 問題あれば修正 -> checklist 全件 done。
+
+**phase-gate**: `node .spec-runner/scripts/render.js` → `.spec-runner/scan/dashboard.md` を読み、以下を全て確認してから完了報告:
+- drift: 0件
+- unmapped: 0件
+
+## Step 6: ハーネスエンジニアリング（繰り返し発生した問題がある場合のみ）
+
+このサイクルで同じ補足説明・手戻り・ルール不足・責務の曖昧さが**繰り返し**発生した場合は `harness-engineering` で改善する。1回限りの例外は対象外。

@@ -19,6 +19,8 @@
  *               duplicate-maps_to（複数ノードが同一ファイルを maps_to）
  *               cycle-depends_on（循環依存）
  *               uncovered-requirement / unknown-requirement-ref（REQ トレーサビリティ）
+ *               uncovered-uc（業務ロジック概要の UC 一覧に node_id があるが詳細設計が存在しない）
+ *               uncovered-screen（画面一覧の SCR 一覧に node_id があるが詳細設計が存在しない）
  *   drift     — 仕様⇔実装の文字列突合（maps_to 先コードを読む）
  *               constant-drift / endpoint-drift / exception-drift / input-drift / test-drift（双方向）
  *               policy-drift（エラーポリシーとの例外型↔ステータスコード突合）
@@ -33,6 +35,16 @@ const lib = require('./lib.js');
 
 const { ROOT } = lib;
 const OUTPUT_DIR = path.join(lib.TOOL_DIR, 'scan');
+
+/** ファイルパスから kind を導出する（frontmatter の kind 廃止） */
+function deriveKind(relPath) {
+  const p = relPath.replace(/\\/g, '/');
+  if (/^docs\/01_/.test(p)) return 'requirement';
+  if (/^docs\/02_/.test(p)) return 'overview_design';
+  if (/^docs\/03_[^/]*\/[^/]*\/00_[^/]*\//.test(p)) return 'common_policy';
+  if (/^docs\/03_/.test(p)) return 'detailed_design';
+  return null;
+}
 
 // 仕様YAMLの正規ブロック順。概要・入出力・テスト仕様以外は任意ブロック
 const BLOCK_ORDER = ['概要', '定数', '公開IF', '入出力', '状態', 'フロー', '非機能', 'テスト仕様', '補足'];
@@ -236,9 +248,21 @@ function driftSpec(relPath, data, mapsTo) {
 
 // ── 検証3: 要件定義からの REQ 抽出 ──────────────────────────────────────────
 
-/** `- REQ-XX: <本文>` 形式の要件定義行を抽出する */
-function parseRequirements(relPath, content) {
+/** 要件定義から REQ-XX を抽出する。yaml フェンスの 受け入れ基準 ブロックを優先し、なければ旧 markdown 形式にフォールバック */
+function parseRequirements(relPath, lines, spec) {
   const reqs = {};
+  if (spec && spec.blocks['機能要件']) {
+    const text = lib.blockText(lines, spec.blocks['機能要件']);
+    for (const item of lib.parseListOfMaps(text)) {
+      if (!item.id || !/^REQ-\d{2,3}$/.test(item.id)) continue;
+      const content = item['内容'] || '';
+      if (lib.isPlaceholder(content)) continue;
+      reqs[item.id] = { file: relPath, text: content.trim(), satisfied_by: [] };
+    }
+    return reqs;
+  }
+  // 旧 markdown 形式: `- REQ-XX: <本文>`
+  const content = lines.join('\n');
   for (const m of content.matchAll(/^\s*[-*]?\s*(REQ-\d{2,3})[:：]\s*(.+)$/gm)) {
     if (lib.isPlaceholder(m[2])) continue;
     reqs[m[1]] = { file: relPath, text: m[2].trim(), satisfied_by: [] };
@@ -325,6 +349,8 @@ function main() {
 
   const allMapsTo = [];
   const nodeDataCache = {};  // policy-drift の2パス目用（node_id → { data, relPath }）
+  const overviewUcEntries = [];     // uncovered-uc 用（業務ロジック概要から収集）
+  const overviewScreenEntries = []; // uncovered-screen 用（画面一覧から収集）
 
   for (const file of files) {
     let content;
@@ -338,25 +364,44 @@ function main() {
     if (!fm) continue;
 
     const relPath = path.relative(ROOT, file);
-    const { node_id, kind, depends_on, maps_to } = fm;
+    const { node_id, depends_on, maps_to } = fm;
+    const kind = deriveKind(relPath);
     const lines = content.split('\n');
 
-    // 要件定義系から REQ-XX を収集
-    if (kind && /^require/.test(kind)) {
-      Object.assign(graph.requirements, parseRequirements(relPath, content));
-    }
-
     const spec = lib.parseSpecBlocks(lines);
+
+    // 要件定義系から REQ-XX を収集（yaml フェンスの 受け入れ基準 ブロックを優先）
+    if (kind && /^require/.test(kind)) {
+      Object.assign(graph.requirements, parseRequirements(relPath, lines, spec));
+    }
     let satisfies = [];
     if (spec) {
       const data = lib.parseSpecData(lines, spec);
       satisfies = data.satisfies;
       nodeDataCache[node_id] = { data, relPath };
-      // common_policy は標準 lint/drift をスキップ（ブロック構成が UC と異なる）
-      if (kind !== 'common_policy') {
+      if (kind === 'overview_design') {
+        // ユースケース一覧 / 画面一覧 の node_id を収集（uncovered-uc / uncovered-screen 用）
+        const ucText = lib.blockText(lines, spec.blocks['ユースケース一覧']);
+        if (ucText) {
+          for (const item of lib.parseListOfMaps(ucText)) {
+            if (item['名前'] && !lib.isPlaceholder(item['名前'])) {
+              overviewUcEntries.push({ file: relPath, node_id: `詳細.ユースケース.${item['名前']}`, id: item.id || '' });
+            }
+          }
+        }
+        const screenText = lib.blockText(lines, spec.blocks['画面一覧']);
+        if (screenText) {
+          for (const item of lib.parseListOfMaps(screenText)) {
+            if (item['名前'] && !lib.isPlaceholder(item['名前'])) {
+              overviewScreenEntries.push({ file: relPath, node_id: `詳細.画面.${item['名前']}`, id: item.id || '' });
+            }
+          }
+        }
+      } else if (kind === 'detailed_design') {
         graph.lint.push(...lintSpec(relPath, spec, data, lines));
         graph.drift.push(...driftSpec(relPath, data, maps_to));
       }
+      // common_policy / requirement / null → lint/drift スキップ
     } else if (kind === 'detailed_design') {
       const ln = lib.findUntaggedFence(lines);
       if (ln > 0) {
@@ -366,7 +411,6 @@ function main() {
 
     graph.nodes[node_id] = {
       file: relPath,
-      kind,
       depends_on,
       maps_to,
       blocks: spec ? spec.blocks : null,
@@ -451,6 +495,22 @@ function main() {
     }
     for (const id of Object.keys(graph.nodes)) dfsCycle(id);
     graph.lint.push(...cycleWarns);
+  }
+
+  // uncovered-uc: 業務ロジック概要に列挙した UC の詳細設計が存在しない
+  for (const entry of overviewUcEntries) {
+    if (!graph.nodes[entry.node_id]) {
+      graph.lint.push({ file: entry.file, rule: 'uncovered-uc',
+        message: `${entry.id ? entry.id + ' ' : ''}node_id「${entry.node_id}」の詳細設計が存在しない（UC 設計書未作成の可能性）` });
+    }
+  }
+
+  // uncovered-screen: 画面一覧に列挙した画面の詳細設計が存在しない
+  for (const entry of overviewScreenEntries) {
+    if (!graph.nodes[entry.node_id]) {
+      graph.lint.push({ file: entry.file, rule: 'uncovered-screen',
+        message: `${entry.id ? entry.id + ' ' : ''}node_id「${entry.node_id}」の詳細設計が存在しない（画面設計書未作成の可能性）` });
+    }
   }
 
   // policy-drift: エラーポリシーが存在すれば全 UC と突合する

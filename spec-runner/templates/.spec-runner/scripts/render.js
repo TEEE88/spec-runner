@@ -9,8 +9,8 @@
  * 生成先:
  *   各詳細設計の末尾 — フロー / 状態.遷移 の Mermaid 図をマーカー区間に埋め込み
  *                      （<!-- spec-runner:figure:start/end --> をツールが管理。手で編集しない）
- *   docs/_generated/dashboard.md    — 全ノードの健康表・要件カバレッジ・警告一覧
- *   docs/_generated/dependencies.md — depends_on の依存グラフ
+ *   .spec-runner/scan/dashboard.md    — 全ノードの健康表・要件カバレッジ・警告一覧（AI が phase-gate チェックに使う）
+ *   .spec-runner/scan/dependencies.md — depends_on の依存グラフ
  *
  * 使い方: node render.js [-q]（-q は要約1行のみ出力）
  */
@@ -20,7 +20,7 @@ const path = require('path');
 const lib = require('./lib.js');
 const { parseListOfMaps, ROOT } = lib;
 
-const OUT_DIR = path.join(ROOT, 'docs', '_generated');
+const OUT_DIR = path.join(lib.TOOL_DIR, 'scan');
 const MARK_START = '<!-- spec-runner:figure:start -->';
 const MARK_END = '<!-- spec-runner:figure:end -->';
 
@@ -197,11 +197,11 @@ function main() {
   const dash = [];
   dash.push('# spec-runner ダッシュボード');
   dash.push('');
-  dash.push(`自動生成（${g.generated_at}）。手で編集しない。再生成: \`node .spec-runner/scripts/render.js\``);
+  dash.push(`自動生成（${g.generated_at}）。手で編集しない。再生成: \`node .spec-runner/scripts/render.js\`（.gitignore 対象）`);
   dash.push('');
   dash.push('## ノード健康表');
   dash.push('');
-  dash.push('| node_id | kind | テスト数 | lint | drift | satisfies |');
+  dash.push('| node_id | テスト数 | lint | drift | satisfies |');
   dash.push('|---|---|---|---|---|---|');
   for (const [id, node] of Object.entries(g.nodes)) {
     const w = warnByFile[node.file] || { lint: 0, drift: 0 };
@@ -212,7 +212,7 @@ function main() {
       testCount = String((readBlock(lines, node, 'テスト仕様').match(/-\s+id:\s*T-/g) || []).length);
     }
     const mark = (c) => (c === 0 ? 'OK' : `${c} 件`);
-    dash.push(`| ${id} | ${node.kind || '-'} | ${testCount} | ${mark(w.lint)} | ${mark(w.drift)} | ${(node.satisfies || []).join(', ') || '-'} |`);
+    dash.push(`| ${id} | ${testCount} | ${mark(w.lint)} | ${mark(w.drift)} | ${(node.satisfies || []).join(', ') || '-'} |`);
   }
   dash.push('');
   dash.push('## 要件カバレッジ');
@@ -270,7 +270,7 @@ function main() {
 
   console.log(quiet
     ? `spec-runner render: ${ids.length} nodes rendered`
-    : `spec-runner render: 図を ${embedded} 設計書へ埋め込み / docs/_generated/（dashboard / dependencies）更新`);
+    : `spec-runner render: 図を ${embedded} 設計書へ埋め込み / .spec-runner/scan/（dashboard / dependencies）更新`);
 }
 
 main();
